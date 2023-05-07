@@ -1,0 +1,4 @@
+#ifndef __tlinsObservationPlaceStatic_hpp__
+#define __tlinsObservationPlaceStatic_hpp__
+
+#endif

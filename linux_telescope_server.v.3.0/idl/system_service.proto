@@ -1,0 +1,54 @@
+syntax = "proto3";
+package tlins;
+import "base.proto";
+
+enum tlinsEventType
+{
+	_KEYBOARD = 0;
+	_JOYSTICK = 1;
+}
+
+//
+// Komunikat sluzacy rejestracji klienta
+//
+message tlinsEventKeyboard
+{
+	tlinsIntValue keyId     = 1;
+	tlinsIntValue keyStatus = 2;
+}
+
+message tlinsEventJoystick
+{
+	tlinsIntValue type   = 1;
+	tlinsIntValue value  = 2;
+	tlinsIntValue number = 3;
+}
+
+message tlinsEventInfo
+{
+	tlinsEventType eventType = 1;
+
+	// Dane zdarzenia
+	oneof eventInfo
+	{
+		tlinsEventKeyboard keyboard = 3;
+		tlinsEventJoystick joystick = 4;
+	}
+}
+
+message tlinsEventTypesList
+{
+	repeated tlinsEventType types = 1;
+}
+
+message tlinsUpdateData
+{
+	bytes data = 1;
+}
+
+service tlinsRpcSystemServiceRecipient
+{
+	// Rejestracja odbiorcy komunikatow
+	rpc readEvents(tlinsEventTypesList) returns (stream tlinsEventInfo) {}
+	rpc updateService(stream tlinsUpdateData) returns (tlinsRpcStatus) {}
+}

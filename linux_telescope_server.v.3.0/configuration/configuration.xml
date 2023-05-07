@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!-- Definicje urzadzen -->
+	<devices>	<!-- Nazwa urzadzenia szeregowego -->
+		<main-device name="main" thread="false" system-device="/dev/ttyUSB0" system-device-conf="/dev/ttyUSB1">
+			<!-- Urzadzenie dla osi X -->
+			<device name="dev::X" axis="X" deviceID="0">
+				<parameters>
+					<parameter name="STOP">10016</parameter>
+
+					<parameter name="M_STATUS">10010</parameter>
+					<parameter name="POS_ACTUAL">10020</parameter>
+					<parameter name="POS_ACTUAL_ENCODER">10108</parameter>
+					<parameter name="POS_ACTUAL_ENCODER_SET">10100</parameter>
+
+					<parameter name="RAMP_A">10036</parameter>
+					<parameter name="RAMP_D">10044</parameter>
+					<parameter name="RAMP_V_MAX">10052</parameter>
+
+					<parameter name="LIN_RAMP_A">10036</parameter>
+					<parameter name="LIN_RAMP_D">10044</parameter>
+					<parameter name="LIN_RAMP_V_MAX">10052</parameter>
+
+					<parameter name="VEL_ABS">10068</parameter>
+					<parameter name="POS_REL">10092</parameter>
+					<parameter name="POS_ABS">10084</parameter>
+
+					<parameter name="CFG_PULS_MAX">0</parameter>
+					<parameter name="CFG_ENC_PULS_MAX">0</parameter>
+
+					<parameter name="default_RAMP_A">2048000</parameter>
+					<parameter name="default_RAMP_D">2048000</parameter>
+					<parameter name="default_RAMP_V_MAX">64000</parameter>
+
+					<parameter name="default_LIN_RAMP_A">2048000</parameter>
+					<parameter name="default_LIN_RAMP_D">2048000</parameter>
+					<parameter name="default_LIN_RAMP_V_MAX">64000</parameter>
+
+					<parameter name="default_CFG_PULS_MAX">13107200</parameter>
+					<parameter name="default_CFG_ENC_PULS_MAX">6553600</parameter>
+					<parameter name="MAX_SPEED">64000</parameter>
+				</parameters>
+			</device>
+
+			<!-- Urzadzenie dla osi Y -->
+			<device name="dev::Y" axis="Y" deviceID="1">
+				<parameters>
+					<parameter name="STOP">10016</parameter>
+
+					<parameter name="M_STATUS">10011</parameter>
+					<parameter name="POS_ACTUAL">10022</parameter>
+					<parameter name="POS_ACTUAL_ENCODER">10110</parameter>
+					<parameter name="POS_ACTUAL_ENCODER_SET">10102</parameter>
+
+					<parameter name="RAMP_A">10038</parameter>
+					<parameter name="RAMP_D">10046</parameter>
+					<parameter name="RAMP_V_MAX">10054</parameter>
+
+					<parameter name="LIN_RAMP_A">10038</parameter>
+					<parameter name="LIN_RAMP_D">10046</parameter>
+					<parameter name="LIN_RAMP_V_MAX">10054</parameter>
+
+					<parameter name="VEL_ABS">10070</parameter>
+					<parameter name="POS_REL">10094</parameter>
+					<parameter name="POS_ABS">10086</parameter>
+
+					<parameter name="CFG_PULS_MAX">0</parameter>
+					<parameter name="CFG_ENC_PULS_MAX">0</parameter>
+
+					<parameter name="default_RAMP_A">2048000</parameter>
+					<parameter name="default_RAMP_D">2048000</parameter>
+					<parameter name="default_RAMP_V_MAX">64000</parameter>
+
+					<parameter name="default_LIN_RAMP_A">2048000</parameter>
+					<parameter name="default_LIN_RAMP_D">2048000</parameter>
+					<parameter name="default_LIN_RAMP_V_MAX">64000</parameter>
+
+					<parameter name="default_CFG_PULS_MAX">13107200</parameter>
+					<parameter name="default_CFG_ENC_PULS_MAX">6553600</parameter>
+					<parameter name="MAX_SPEED">64000</parameter>
+				</parameters>
+			</device>
+
+			<!-- Inne parametery urzadzenia -->
+			<parameters>
+				<!-- Definicje zwiazane z limitami pozycji konca tubusa w celu unikniecia kolizji z monatzem - aktualnie w dewelopmencie -->
+				<parameter name="position-limit-h">500</parameter>
+				<parameter name="position-limit-r1">500</parameter>
+				<parameter name="position-limit-r2">10016</parameter>
+				<parameter name="position-limit-dx">10016</parameter>
+				<parameter name="position-limit-dz">10016</parameter>
+				<parameter name="position-limit-angle-X">123.5</parameter>
+				<parameter name="position-limit-angle-Y">123.6</parameter>
+				<parameter name="position-limit-angle-Z">0.0</parameter>
+				<parameter name="limit-frequency">100</parameter>
+
+				<parameter name="STOP">10016</parameter>
+				<parameter name="LIN_V">0</parameter>
+				<parameter name="LIN_V_ABS">1</parameter>
+
+				<!--
+					Rejestry wyzwalajace ruch
+				-->
+				<parameter name="AXIS_CTR_MODE">10004</parameter>
+				<!-- Wyzwalacz dla predkosci absolutnej -->
+				<parameter name="AXIS_VEL_ABS_TRIG">10005</parameter>
+				<!-- Wyzwalacz dla predkosci wzglednej -->
+				<parameter name="AXIS_VEL_REL_TRIG">10006</parameter>
+				<!-- Wyzwalacz dla przemieszcenia absolutnego -->
+				<parameter name="AXIS_POS_ABS_TRIG">10007</parameter>
+				<!-- Wyzwalacz dla przemieszcenia relatywnego -->
+				<parameter name="AXIS_POS_REL_TRIG">10008</parameter>
+
+				<parameter name="DATA_TYPE">10000</parameter>
+				<parameter name="M_ENABLE">10014</parameter>
+				<parameter name="M_DISABLE">10015</parameter>
+
+				<parameter name="baundRate">115200</parameter>
+				<parameter name="parity">none</parameter>
+				<parameter name="dataBit">8</parameter>
+				<parameter name="stopBit">1</parameter>
+				<parameter name="timeOut">750</parameter>
+				<parameter name="serverId">1</parameter>
+
+				<parameter name="programStatusCheckInterval">0</parameter>
+				<parameter name="statusCheckInterval">20</parameter>
+
+				<parameter name="baundRateConf">115200</parameter>
+				<parameter name="parityConf">none</parameter>
+				<parameter name="dataBitConf">8</parameter>
+				<parameter name="stopBitConf">1</parameter>
+				<parameter name="timeOutConf">750</parameter>
+				<parameter name="serverIdConf">10</parameter>
+
+				<!-- Domyslny adres urzadzenia slave-->
+				<parameter name="default_CFG_SLAVE_ADDRES">10</parameter>
+
+				<!-- Domyslna predkosc w trybie interpolacji liniowej -->
+				<parameter name="default_LIN_V">64000</parameter>
+				<parameter name="default_LIN_V_ABS">64000</parameter>
+
+				<!-- Adresy po stronie klienta do pobierania stanu osi kontrolera-->
+				<parameter name="REG_CONF_X">1000</parameter>
+				<parameter name="REG_CONF_Y">1001</parameter>
+				<parameter name="REG_CONF_XY">1002</parameter>
+				<parameter name="REG_CONF_ERROR">1003</parameter>
+			</parameters>
+		</main-device>
+	</devices>
+
+	<!-- Konfiguracja wspolna/ogolna systmu -->
+	<system>
+	</system>
+
+	<parameters>
+		<parameter name="logFileName">tlins.log</parameter>
+		<parameter name="logLevel">debug</parameter>
+		<parameter name="logOutput">stdout</parameter>
+
+		<parameter name="url"           >0.0.0.0:20001</parameter>
+		<parameter name="urlAsynchronus">0.0.0.0:20003</parameter>
+	</parameters>
+</configuration>

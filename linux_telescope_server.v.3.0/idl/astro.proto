@@ -1,0 +1,405 @@
+syntax = "proto3";
+
+package tlins;
+
+import "base.proto";
+
+//
+// Pojedyncza Koordynata
+//
+message tlinsCoordinate {
+  tlinsBoolValue sign = 1;
+  tlinsIntValue degris = 2;
+  tlinsIntValue minutes = 3;
+  tlinsDoubleValue seconds = 4;
+}
+
+message tlinsAstroObject {
+  // Deklinacja
+  tlinsCoordinate declination = 1;
+
+  // Kat godzinowy
+  tlinsCoordinate hourAngle = 2;
+
+  // Ruch wlasny
+  tlinsDoubleValue properMotionRA = 3;
+  tlinsDoubleValue properMotionDC = 4;
+
+  // Paralaxa
+  tlinsDoubleValue parallax = 5;
+
+  // Predkosc radialna
+  tlinsDoubleValue radialVelocity = 6;
+
+  // Nawa katalogu
+  tlinsStringValue catalogType = 7;
+}
+
+message tlinsAstroObjectSimple {
+  // Deklinacja
+  tlinsCoordinate declination = 1;
+
+  // Kat godzinowy
+  tlinsCoordinate hourAngle = 2;
+}
+
+message tlinsFullCoordinate {
+  tlinsCoordinate longitude = 1;
+  tlinsCoordinate latitude = 2;
+}
+
+message tlinsEnvironment {
+  /* Ambient pressure (HPa), temperature (C) and rel. humidity (frac). */
+
+  // Cisnienie atmosferyczne (HPa)
+  tlinsDoubleValue ambientPressure = 1;
+
+  // Temperatura
+  tlinsDoubleValue temperature = 2;
+
+  // Wilgotnosc
+  tlinsDoubleValue realHumidity = 3;
+
+  // Efektywny kolor
+  tlinsDoubleValue effectiveColor = 4;
+}
+
+message tlinsIERSInfoItem {
+  // Data
+  tlinsIntValue year = 1;
+  tlinsIntValue month = 2;
+  tlinsIntValue day = 3;
+
+  // - Polar motion
+  tlinsDoubleValue pmX = 4;
+  tlinsDoubleValue pmY = 5;
+
+  // - Roiznica czasu UT1-UTC
+  tlinsDoubleValue deltaUT = 6;
+
+  // - Nutacja
+  tlinsDoubleValue dPsi = 7;
+  tlinsDoubleValue dEpsilon = 8;
+  tlinsDoubleValue dx = 9;
+  tlinsDoubleValue dy = 10;
+}
+
+message tlinsIERSInfo { repeated tlinsIERSInfoItem items = 1; }
+
+enum tlinsElipsoideType {
+  _WGS_84 = 0;
+  _GRS_80 = 1;
+  _WGS_72 = 2;
+}
+
+message tlinsObservationPlace {
+  tlinsCoordinate longitude = 1;
+  tlinsCoordinate latitude = 2;
+
+  // height above the geoid
+  tlinsDoubleValue hm = 3;
+
+  message ElipsoideType_ { tlinsElipsoideType value = 1; };
+  ElipsoideType_ epType = 4;
+}
+
+message tlinsPolarMotion {
+  tlinsCoordinate x = 1;
+  tlinsDoubleValue xDeg = 2;
+  tlinsCoordinate y = 3;
+  tlinsDoubleValue yDeg = 4;
+}
+
+message tlinsTarget {
+  tlinsAstroObject object = 1;
+  tlinsIntValue delta = 2;
+  tlinsDoubleValue speed = 3;
+  tlinsDoubleValue aceleration = 4;
+  tlinsBoolValue isIncrement = 5;
+}
+
+message tlinsMeserment {
+  tlinsAstroObject reference = 1;
+
+  // Input jest opcionalny. W sytuacji gdy nie jest przekazywany to
+  // bedzie odczytywany z urzadzenia
+  tlinsFullCoordinate input = 2;
+  tlinsFullCoordinate inputError = 3;
+  tlinsDoubleValue w = 4;
+}
+
+message tlinsVelocityMeserment {
+  tlinsFullCoordinate input = 1;
+  tlinsFullCoordinate inputError = 2;
+  tlinsDoubleValue w = 3;
+
+  tlinsIntValue time = 4;
+  tlinsBoolValue setTime = 5;
+}
+
+enum tlinsEngineMode_ {
+  _MODE_NONE = 0;
+  _MODE_STANDARD = 1;
+  _MODE_EXTERNAL_SUPPORT = 2;
+  _MODE_STANDARD_SPEED = 3;
+}
+
+enum tlinsGuiderStatus_ {
+  _GUIDER_SET = 0;
+  _GUIDER_IN_PROGRESS = 1;
+  _GUIDER_NO_TARGET = 2;
+  _GUIDER_ERROR = 3;
+}
+
+message tlinsEngineMode { tlinsEngineMode_ mode = 1; }
+
+enum tlinsEngineStateValue_ {
+  _STATE_CALIBRATION = 0;
+  _STATE_REGULAR = 1;
+}
+
+message tlinsEngineStateValue { tlinsEngineStateValue_ state = 1; }
+
+enum tlinsMultipleModeFinall_ {
+  _SWITCH_TO_STANDARD = 0;
+  _SWITCH_TO_EXTERNAL = 1;
+}
+
+message tlinsMultipleModeFinall { tlinsMultipleModeFinall_ multiple = 1; }
+
+message tlinsDevicePosition {
+  // Pozycja kontrolera
+  tlinsIntValue x = 1;
+  tlinsIntValue y = 2;
+
+  // POzycja odczytana z enkodera
+  tlinsIntValue xEncoder = 3;
+  tlinsIntValue yEncoder = 4;
+}
+
+message tlinsCurrentTarget { tlinsTarget target = 1; }
+
+message tlinsEngineState {
+  // Macierz transformacji
+  tlinsMatrix3 attitude = 1;
+
+  // Wspolrzedne urzadzenia
+  tlinsDevicePosition devicePosition = 2;
+
+  // Biezacy cel
+  tlinsCurrentTarget currentTarget = 3;
+
+  // Aktualny tryb urzadzenia
+  tlinsEngineMode mode = 4;
+
+  // Stan urzadzenia
+  tlinsEngineStateValue state = 5;
+
+  // Tryb multiple
+  tlinsMultipleModeFinall multipleFinal = 6;
+
+  tlinsBoolValue xReverse = 7;
+  tlinsBoolValue yReverse = 8;
+}
+
+message tlinsEngineStateInfo {
+  // Status zapytania
+  tlinsRpcStatus status = 1;
+
+  // Macierz transformacji
+  tlinsEngineState state = 2;
+}
+
+//
+//
+//
+message tlinsIERS {
+  tlinsIntValue year = 1;
+  tlinsIntValue month = 2;
+  tlinsIntValue day = 3;
+
+  // - Polar motion
+  tlinsDoubleValue pmX = 4;
+  tlinsDoubleValue pmY = 5;
+
+  // - Roiznica czasu UT1-UTC
+  tlinsDoubleValue deltaUT = 6;
+
+  // - Nutacja
+  tlinsDoubleValue dPsi = 7;
+  tlinsDoubleValue dEpsilon = 8;
+  tlinsDoubleValue dx = 9;
+  tlinsDoubleValue dy = 10;
+}
+
+message tlinsIERSList {
+  tlinsBoolValue storeLocaly = 1;
+  tlinsBoolValue overwrite = 2;
+  repeated tlinsIERS items = 3;
+}
+
+message tlinsEngineCalibrarionState {
+  // Stan silnika
+  tlinsEngineStateValue state = 1;
+
+  // Licznik iteracji
+  tlinsIntValue iterationCount = 2;
+}
+
+message tlinsCurrentTargetInfo {
+  // Status zapytania
+  tlinsRpcStatus status = 1;
+
+  // Biezacy cel
+  tlinsTarget target = 2;
+}
+
+message tlinsEngineCalibrarionStateInfo {
+  // Status zapytania
+  tlinsRpcStatus status = 1;
+
+  // Stan kalibracji
+  tlinsEngineCalibrarionState state = 2;
+
+  // Status sledzenia
+  tlinsBoolValue isTrackingEnabled = 3;
+}
+
+message tlinsTracking {
+  // Predkosc dla osi RA w [arcs/s]
+  tlinsDoubleValue ra = 1;
+
+  // Predkosc dla osi DEC w [arcs/s]
+  tlinsDoubleValue dec = 2;
+}
+
+message tlinsTrackingStatus {
+  // Predkosc dla osi RA w [arcs/s]
+  tlinsDoubleValue ra = 1;
+
+  // Predkosc dla osi DEC w [arcs/s]
+  tlinsDoubleValue dec = 2;
+
+  // Status sledzenia
+  tlinsBoolValue trackingStatus = 3;
+
+  // Status operacji
+  tlinsRpcStatus status = 4;
+}
+
+// Synchronizacja
+message tlinsSync {
+  tlinsDoubleValue ra = 1;
+  tlinsDoubleValue dec = 2;
+}
+
+message tlinsGuiderStatus {
+  tlinsRpcStatus status = 1;
+  tlinsGuiderStatus_ guiderStatus = 2;
+}
+
+message tlinsGuiderConfigSet {
+  tlinsDoubleValue raRatio = 1;
+  tlinsDoubleValue decRatio = 2;
+  tlinsBoolValue useRaForDec = 3;
+}
+
+message tlinsGuiderConfigStatus {
+  tlinsDoubleValue raRatio = 1;
+  tlinsDoubleValue decRatio = 2;
+  tlinsBoolValue useRaForDec = 3;
+  tlinsRpcStatus status = 4;
+}
+
+message tlinsManualCorrection {
+  tlinsDoubleValue ra = 1;
+  tlinsDoubleValue dec = 2;
+}
+
+message tlinsManualCorrectionStatus {
+  tlinsDoubleValue ra = 1;
+  tlinsDoubleValue dec = 2;
+  tlinsRpcStatus status = 3;
+}
+
+message tlinsResetCalibration {
+  tlinsBoolExtendedValue reverseDeviceX = 1;
+  tlinsBoolExtendedValue reverseDeviceY = 2;
+}
+
+service tlinsRpcAstroService {
+  // Pobranie aktualnego stanu kalibracji
+  rpc getCalibrationState(Void) returns (tlinsEngineCalibrarionStateInfo);
+
+  // Pobranie aktualnego stanu kontrolera
+  // - Macierz transformacji
+  // - pozycje kontrolera
+  rpc getState(tlinsBoolValue) returns (tlinsEngineStateInfo);
+
+  // Wymuszenie zapisanego wczesnie stanu kontrolera astro
+  rpc restoreState(tlinsEngineState) returns (tlinsRpcStatus);
+
+  // Uruchomienie/zatrzymanie sledzenia
+  rpc startTracking(Void) returns (tlinsRpcStatus);
+  rpc stopTracking(Void) returns (tlinsRpcStatus);
+
+  // Tryb servera
+  rpc setMode(tlinsEngineMode) returns (tlinsRpcStatus);
+
+  // Ustawienie obiektu docelowego
+  rpc setTarget(tlinsTarget) returns (tlinsRpcStatus);
+
+  // Pobranie informacji o biezacym celu
+  rpc getTarget(Void) returns (tlinsCurrentTargetInfo);
+
+  // Rejestracja pomiaru
+  rpc registerMeserment(tlinsMeserment) returns (tlinsRpcStatus);
+
+  // Rejestracja pomiaru odroczony potwierdzany pozniej po ustawieniu pozycji i potwierdzenie
+  // W trybie odroczponym zawsze pobierana jest wspołrzedna z urzadzenia
+  rpc registerMesermentDefered(tlinsMeserment) returns (tlinsRpcStatus);
+  rpc confirmDeferedMeserment(Void) returns (tlinsRpcStatus);
+
+  // Zamkniecie kalibracji
+  rpc closeCalibration(Void) returns (tlinsRpcStatus);
+
+  // Parametery otoczenia
+  rpc setEnvironment(tlinsEnvironment) returns (tlinsRpcStatus);
+
+  // IERS info
+  rpc setIERSInfo(tlinsIERSList) returns (tlinsRpcStatus);
+
+  // Miejsce obserwacji
+  rpc setObservationPlace(tlinsObservationPlace) returns (tlinsRpcStatus);
+
+  // Miejsce obserwacji
+  rpc resetCalibration(tlinsResetCalibration) returns (tlinsRpcStatus);
+
+  // Ustawienie biezacego celu na podstawie biezacej pozycji teleskopu
+  rpc setTargetForCurrentPosition(Void) returns (tlinsRpcStatus);
+
+  // Ustawienie parameterow sledzenia
+  rpc setTracking(tlinsTracking) returns (tlinsRpcStatus);
+
+  // Wlaczenie wylaczenie sledzenia
+  rpc setTrackingState(tlinsBoolValue) returns (tlinsRpcStatus);
+
+  // Wlaczenie wylaczenie sledzenia
+  rpc getTrackingState(Void) returns (tlinsTrackingStatus);
+
+  // Synchronizacaj z zewnetrzenym kontrolerm
+  rpc sync(tlinsSync) returns (tlinsRpcStatus);
+
+  // Synchronizacaj z zewnetrzenym kontrolerm
+  rpc guideNorth(tlinsIntValue) returns (tlinsGuiderStatus);
+  rpc guideSounth(tlinsIntValue) returns (tlinsGuiderStatus);
+  rpc guideEst(tlinsIntValue) returns (tlinsGuiderStatus);
+  rpc guideWest(tlinsIntValue) returns (tlinsGuiderStatus);
+
+  rpc guiderRatioSet(tlinsGuiderConfigSet) returns (tlinsRpcStatus);
+  rpc guiderRatioGet(Void) returns (tlinsGuiderConfigStatus);
+
+  rpc manualCorrection(tlinsManualCorrection) returns (tlinsRpcStatus);
+  rpc manualCorrectionReset(Void) returns (tlinsRpcStatus);
+  rpc manualCorrectionGet(Void) returns (tlinsManualCorrectionStatus );
+}

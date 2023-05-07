@@ -1,0 +1,3 @@
+/home/jacek/development/project/current_indi/driver/CMakeFiles/rebuild_cache.dir
+/home/jacek/development/project/current_indi/driver/CMakeFiles/edit_cache.dir
+/home/jacek/development/project/current_indi/driver/CMakeFiles/indi_tlins.dir

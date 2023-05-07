@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package tlins;
+
+//
+// Status
+//
+enum ErrorCodes
+{
+	_ERROR_CODE_SUCCESS = 0;
+	_ERROR_CODE_WARNING = 1;
+	_ERROR_CODE_ERROR   = 2;
+	_ERROR_CODE_FATAL   = 3;
+}
+
+
+enum BoolValueExtendCodes
+{
+	_DERIVED = 0;
+	_TRUE = 1;
+	_FALSE   = 2;
+}
+
+message tlinsRpcStatus
+{
+	ErrorCodes status       = 1;
+	int32 errorCode         = 2;
+	string errorDescription = 3;
+}
+
+message tlinsStringValue
+{
+	string value = 1;
+}
+
+message tlinsBoolValue
+{
+	bool value = 1;
+}
+
+message tlinsBoolExtendedValue
+{
+	BoolValueExtendCodes value = 1;
+}
+
+message tlinsDoubleValue
+{
+	double value = 1;
+}
+
+message tlinsIntValue
+{
+	int32 value = 1;
+}
+
+message Void
+{
+	int32 any = 1;
+}
+
+message tlinsVerctor3
+{
+	tlinsDoubleValue a1 = 1;
+	tlinsDoubleValue a2 = 2;
+	tlinsDoubleValue a3 = 3;
+}
+
+message tlinsVerctor4
+{
+	tlinsDoubleValue a1 = 1;
+	tlinsDoubleValue a2 = 2;
+	tlinsDoubleValue a3 = 3;
+	tlinsDoubleValue a4 = 4;
+}
+
+message tlinsMatrix3
+{
+	/*
+	   [ a00, a01, a02 ]
+	   [ a10, a11, a12 ]
+	   [ a20, a21, a22 ]
+	 */
+	tlinsDoubleValue a00 = 1;
+	tlinsDoubleValue a01 = 2;
+	tlinsDoubleValue a02 = 3;
+	tlinsDoubleValue a10 = 4;
+	tlinsDoubleValue a11 = 5;
+	tlinsDoubleValue a12 = 6;
+	tlinsDoubleValue a20 = 7;
+	tlinsDoubleValue a21 = 8;
+	tlinsDoubleValue a22 = 9;
+}
+
+message tlinsMatrix4
+{
+	/*
+	   [ a00, a01, a02, a03 ]
+	   [ a10, a11, a12, a13 ]
+	   [ a20, a21, a22, a23 ]
+	   [ a30, a31, a32, a33 ]
+	 */
+	tlinsDoubleValue a00 = 1;
+	tlinsDoubleValue a01 = 2;
+	tlinsDoubleValue a02 = 3;
+	tlinsDoubleValue a03 = 4;
+	tlinsDoubleValue a10 = 5;
+	tlinsDoubleValue a11 = 6;
+	tlinsDoubleValue a12 = 7;
+	tlinsDoubleValue a13 = 8;
+	tlinsDoubleValue a20 = 9;
+	tlinsDoubleValue a21 = 10;
+	tlinsDoubleValue a22 = 11;
+	tlinsDoubleValue a23 = 12;
+	tlinsDoubleValue a30 = 13;
+	tlinsDoubleValue a31 = 14;
+	tlinsDoubleValue a32 = 15;
+	tlinsDoubleValue a33 = 16;
+}

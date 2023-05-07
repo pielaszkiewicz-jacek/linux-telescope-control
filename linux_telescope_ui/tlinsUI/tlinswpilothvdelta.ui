@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>tlinsWPilotHVDelta</class>
+ <widget class="QWidget" name="tlinsWPilotHVDelta">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>455</width>
+    <height>287</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="font">
+      <font>
+       <italic>true</italic>
+      </font>
+     </property>
+     <property name="title">
+      <string>Type</string>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QRadioButton" name="radioTypeSteps">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string> Steps</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioTypeDegris">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string> Degris</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_4">
+     <property name="font">
+      <font>
+       <italic>true</italic>
+      </font>
+     </property>
+     <property name="title">
+      <string>Axis</string>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QRadioButton" name="radioAxisHorisontal">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string> Horisontal/RA</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioAxisVertical">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string> Vertical/DC</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupDegris">
+     <property name="font">
+      <font>
+       <italic>true</italic>
+      </font>
+     </property>
+     <property name="title">
+      <string>Delta degris</string>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="tlinsWCoordinateDegris" name="deltaDegris" native="true">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="font">
+         <font>
+          <italic>true</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string>[degris]</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupSteps">
+     <property name="font">
+      <font>
+       <italic>true</italic>
+      </font>
+     </property>
+     <property name="title">
+      <string>Delta steps</string>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="tlinsWDecimalValue" name="deltaSteps" native="true">
+        <property name="font">
+         <font>
+          <italic>false</italic>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="font">
+         <font>
+          <italic>true</italic>
+         </font>
+        </property>
+        <property name="text">
+         <string>[steps]</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>tlinsWCoordinateDegris</class>
+   <extends>QWidget</extends>
+   <header>tlinswcoordinatedegris.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>tlinsWDecimalValue</class>
+   <extends>QWidget</extends>
+   <header>tlinswdecimalvalue.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>radioTypeDegris</sender>
+   <signal>clicked()</signal>
+   <receiver>tlinsWPilotHVDelta</receiver>
+   <slot>degrisSelected()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>276</x>
+     <y>59</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>454</x>
+     <y>88</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioTypeSteps</sender>
+   <signal>clicked()</signal>
+   <receiver>tlinsWPilotHVDelta</receiver>
+   <slot>stepsSelected()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>56</x>
+     <y>59</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>454</x>
+     <y>160</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioAxisHorisontal</sender>
+   <signal>clicked()</signal>
+   <receiver>tlinsWPilotHVDelta</receiver>
+   <slot>hSelected()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>47</x>
+     <y>126</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>607</x>
+     <y>126</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioAxisVertical</sender>
+   <signal>clicked()</signal>
+   <receiver>tlinsWPilotHVDelta</receiver>
+   <slot>vSelected()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>309</x>
+     <y>129</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>755</x>
+     <y>137</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>degrisSelected()</slot>
+  <slot>stepsSelected()</slot>
+  <slot>astroSelected()</slot>
+  <slot>hSelected()</slot>
+  <slot>vSelected()</slot>
+ </slots>
+</ui>

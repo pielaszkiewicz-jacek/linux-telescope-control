@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tables>
+	<sinTable>
+			<values>999,456,789,1,2</values>
+			<values>101112,131415,161718</values>
+	</sinTable>
+	<cosTable>
+			<values>888,2122,23,1,2</values>
+			<values>2425,2627,2829</values>
+	</cosTable>
+</tables>

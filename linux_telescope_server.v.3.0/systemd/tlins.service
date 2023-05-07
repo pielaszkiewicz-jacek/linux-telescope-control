@@ -1,0 +1,14 @@
+[Unit]
+Description=TLINS motors service
+
+[Service]
+Type=simple
+Restart=yes
+IgnoreSIGPIPE=no
+KillMode=process
+Environment="LD_LIBRARY_PATH=/home/tlins/lib:${LD_LIBRARY_PATH}"
+ExecStart=/home/tlins/bin/tlins /home/tlins/cfg/configuration.xml /home/tlins/logs
+
+[Install]
+WantedBy=multi-user.target
+

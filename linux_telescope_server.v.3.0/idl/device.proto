@@ -1,0 +1,345 @@
+syntax = "proto3";
+
+package tlins;
+
+import "base.proto";
+
+//
+// Zaczep potwierdzen
+//
+message tlinsConfirmationHandler
+{
+	string handler = 1;
+}
+
+message tlinsConfirmationHandlerResult
+{
+	tlinsConfirmationHandler handler = 1;
+	tlinsRpcStatus           status  = 2;
+}
+
+//
+// Status Przemieszczenia
+//
+enum tlinsRpcAxisRequestStatusResult
+{
+	_STATUS_WATING              = 0;
+	_STATUS_COMPLETED_SUCCESS   = 1;
+	_STATUS_REJECTED            = 2;
+	_STATUS_COMPLETED_INCMPLETE = 3;
+	_STATUS_ERROR               = 4;
+}
+
+message tlinsRpcMoveStatusAxis
+{
+	string axisName = 1;
+	tlinsRpcAxisRequestStatusResult status = 2;
+}
+
+message tlinsRpcMoveStatus
+{
+	tlinsRpcStatus status                   = 1;
+	uint32 requestId                        = 2;
+	repeated tlinsRpcMoveStatusAxis details = 3;
+}
+
+//
+// Informacja o urzadzeniu
+//
+message tlinsRpcDeviceInfo {
+	string mainDevice = 1;
+	string axis       = 2;
+}
+
+//
+// Konfiguracja urzadzenia
+//
+enum MotorStatus
+{
+	_MOTOR_OFF                    = 0;
+	_MOTOR_ON                     = 1;
+	_MOTOR_SPEED_MODE             = 2;
+	_MOTOR_POSITION_MODE          = 3;
+	_MOTOR_REACHED_POSITION       = 4;
+	_MOTOR_ERROR_POSITION_ENCODER = 5;
+	_MOTOR_ERROR_HOME_MODE        = 6;
+	_MOTOR_CORRECTION_MODE        = 8;
+}
+
+message tlinsRpcDeviceConfigurationAxis
+{
+	string axisName                     =  1;
+	tlinsIntValue encoderResolution        =  2;
+	tlinsIntValue stepsOnResolution        =  3;
+
+	tlinsIntValue linearA                  =  4;
+	tlinsIntValue linearD                  =  5;
+	tlinsIntValue positionA                =  6;
+	tlinsIntValue positionD                =  7;
+	tlinsIntValue positionV                =  8;
+	tlinsIntValue speedA                   =  9;
+	tlinsIntValue speedD                   = 10;
+	tlinsIntValue speedV                   = 11;
+}
+
+message tlinsRpcDeviceConfiguration
+{
+	string mainDeviceName                          = 1;
+	repeated tlinsRpcDeviceConfigurationAxis axies = 2;
+	tlinsRpcStatus status                          = 3;
+}
+
+enum tlinsMoveDirection
+{
+	_LEFT  = 0;
+	_RIGHT = 1;
+}
+
+message tlinsRpcMovePositionRequestAxis
+{
+	tlinsStringValue axisName = 1;
+	tlinsIntValue A = 2;
+	tlinsIntValue D = 3;
+	tlinsIntValue V = 4;
+
+	message directionField
+	{
+		tlinsMoveDirection value = 1;
+	}
+	directionField direction = 5;
+
+	tlinsIntValue distance = 6;
+}
+
+enum tlinsSerialMoveType
+{
+	_SPEED     = 0;
+	_POSITION  = 1;
+	_STOP      = 2;
+	_ABORT     = 3;
+}
+
+enum tlinsSerialMoveInterpolationType
+{
+	_NONE    = 0;
+	_LINEAR  = 1;
+}
+
+enum tlinsSerialMoveModeRelAbs
+{
+	_REL = 0;
+	_ABS = 1;
+}
+
+message tlinsRpcMoveRequest
+{
+	tlinsConfirmationHandler confirmationHandler = 1;
+
+	tlinsStringValue mainDeviceName = 2;
+	tlinsIntValue A = 3;
+	tlinsIntValue D = 4;
+	tlinsIntValue V = 5;
+
+	message modeField
+	{
+		tlinsSerialMoveType value = 1;
+	}
+	modeField mode = 6;
+
+	message interpolationTypeField
+	{
+		tlinsSerialMoveInterpolationType value = 1;
+	}
+	interpolationTypeField interpolationType = 7;
+
+	message tlinsSerialMoveModeRelAbsField
+	{
+		tlinsSerialMoveModeRelAbs value = 1;
+	}
+	tlinsSerialMoveModeRelAbsField moveType = 8;
+
+	int32 userRequestID = 9;
+
+	repeated tlinsRpcMovePositionRequestAxis requestDetails = 10;
+}
+
+message tlinsRpcAbortRequest
+{
+	repeated string mainDeviceName = 1;
+}
+
+message tlinsRpcPositionInfoAxis
+{
+	string axisName          = 1;
+	int32 encoderPostion     = 2;
+	int32 motorPostion       = 3;
+
+	int32 rawEncoderPostion  = 4;
+	int32 rawMotorPostion    = 5;
+
+	// MotorStatus deviceStatus = 4;
+}
+
+message tlinsRpcPositionInfo
+{
+	tlinsStringValue deviceName             = 1;
+	repeated tlinsRpcPositionInfoAxis axies = 2;
+	tlinsRpcStatus status                   = 3;
+}
+
+message tlinsRpcPosition
+{
+	tlinsStringValue deviceName             = 1;
+	repeated tlinsRpcPositionInfoAxis axies = 2;
+}
+
+message tlinsRpcMainDevicesName
+{
+	string deviceName = 1;
+}
+
+enum tlinsSerialDeviceMode
+{
+	_AXIS         = 0;
+	_SYNCHRONISED = 1;
+}
+
+message tlinsRpcDeviceMode
+{
+	tlinsStringValue deviceName = 1;
+
+	message modeField
+	{
+		tlinsSerialDeviceMode value = 1;
+	}
+	modeField mode = 2;
+}
+
+message tlinsRpcDeviceModeStatus
+{
+	tlinsStringValue deviceName = 1;
+
+	message modeField
+	{
+		tlinsSerialDeviceMode value = 1;
+	}
+	modeField mode              = 2;
+	tlinsRpcStatus status       = 3;
+}
+
+enum tlinsSerialDeviceConfirmationType
+{
+	_CONF_MOVE_REQUEST = 0;
+	_CONF_POSITION_LIMITS = 1;
+}
+
+enum tlinsDeviceStatus
+{
+	_CONF_DEVICE_IN_LIMIT = 0;
+	_CONF_DEVICE_LIMITS_SUSPENDED = 1;
+	_CONF_DEVICE_LIMITS_REASUMED = 2;
+}
+
+message tlinsRpcPositionLimitStatus
+{
+	string deviceName = 1;
+	tlinsDeviceStatus status = 2;
+}
+
+message tlinsRpcConfirmationStatus
+{
+	// Typ potwierdzenia
+	tlinsSerialDeviceConfirmationType type = 1;
+	tlinsConfirmationHandler handler = 2;
+	int32 userRequestID = 3;
+
+	oneof data
+	{
+		// Potwierdzenie przemieszczenia
+		tlinsRpcMoveStatus moveRequest = 4;
+
+		// Informacja o osiuagnieciu limitu pozycji
+		tlinsRpcPositionLimitStatus positionLimit = 5;
+	}
+}
+
+message tlinsRpcDateTime
+{
+	tlinsIntValue year   = 1;
+	tlinsIntValue month  = 2;
+	tlinsIntValue day    = 3;
+	tlinsIntValue hour   = 4;
+	tlinsIntValue minute = 5;
+	tlinsIntValue second = 6;
+}
+
+// Pojedynczy limit
+message tlinsLimit
+{
+	tlinsVerctor3 start = 1;
+	tlinsVerctor3 end   = 2;
+}
+
+// Lista limitow
+message tlinsLimits
+{
+	tlinsStringValue deviceName = 1;
+	repeated tlinsLimit limits = 2;
+}
+
+message tlinsTestLimit
+{
+	tlinsStringValue deviceName = 1;
+	tlinsVerctor3 position = 2;
+}
+
+message tlinsTestLimitResult
+{
+	tlinsBoolValue limitStatus = 1;
+	tlinsRpcStatus result = 2;
+}
+
+
+service tlinsRpcConfirmationService
+{
+	rpc confirmation(tlinsConfirmationHandler ) returns (stream tlinsRpcConfirmationStatus ) {}
+}
+
+//
+// Serwis dostarczajacy metod pozwalajacych na
+//
+service tlinsRpcService
+{
+	// Rzadanie utworzenia kontestu potwierdzen
+	rpc createConfirmation(Void ) returns (tlinsConfirmationHandlerResult ) {}
+
+	// Wstawienie rzadania przemieszczenia
+	rpc setMoveRequest(tlinsRpcMoveRequest)   returns (tlinsRpcMoveStatus ) {}
+	rpc setMoveMode(tlinsRpcDeviceMode)       returns (tlinsRpcStatus ) {}
+	rpc getMoveMode(tlinsStringValue)         returns (tlinsRpcDeviceModeStatus ) {}
+
+	rpc getPosition(tlinsRpcMainDevicesName)  returns (tlinsRpcPositionInfo ) {}
+	rpc setPosition(tlinsRpcPosition)  returns (tlinsRpcStatus) {}
+
+	rpc getConfiguration(tlinsRpcMainDevicesName) returns (tlinsRpcDeviceConfiguration ) {}
+
+	rpc setDateTime(tlinsRpcDateTime) returns (tlinsRpcStatus) {}
+
+	//
+	// Metody zwiazane z detekcja kolizji
+	//
+
+	// Rzadanie utworzenia kontekstu potwierdzen dla limitow
+	rpc colistionsDetectionConfirmationCreate(tlinsStringValue) returns (tlinsConfirmationHandlerResult ) {}
+
+	// Ustawienie i pobranie wartosci limitu
+	rpc colistionsDetectionSetLimits(tlinsLimits) returns (tlinsRpcStatus) {}
+	rpc colistionsDetectionGetLimits(Void) returns (tlinsLimits) {}
+
+	// Testowanie limitu
+	rpc colistionsDetectionTest(tlinsTestLimit) returns (tlinsTestLimitResult) {}
+
+	// Wlaczenie wylaczenie limitow
+	rpc colistionsDetectionEnable(tlinsStringValue) returns (tlinsRpcStatus) {}
+	rpc colistionsDetectionDisable(tlinsStringValue) returns (tlinsRpcStatus) {}
+}

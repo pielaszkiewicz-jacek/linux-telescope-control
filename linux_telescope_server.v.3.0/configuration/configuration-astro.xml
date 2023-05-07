@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration-astro deviceName="main">
+	<axes>
+		<axis id="X">
+			<!-- Inicialne przyspieszenie korekty -->
+			<parameter name="aceleration">8.00</parameter>
+			<parameter name="deceleration">8.00</parameter>
+
+			<!-- Inicialna prdkosc korekty w radianach na sekunde -->
+			<parameter name="speed">0.0306796157577128</parameter>
+
+			<!-- Wartosc bledu kalibracji -->
+			<parameter name="calibaration-error">0.0001</parameter>
+
+			<!-- Kierunek obrotu -->
+			<parameter name="device-reverse">true</parameter>
+		</axis>
+
+		<axis id="Y">
+			<!-- Inicialne przyspieszenie korekty -->
+			<parameter name="aceleration">8.00</parameter>
+			<parameter name="deceleration">8.00</parameter>
+
+			<!-- Inicialna prdkosc korekty w radianach na sekunde -->
+			<parameter name="speed">0.0306796157577128</parameter>
+
+			<!-- Wartosc bledu kalibracji -->
+			<parameter name="calibaration-error">0.0001</parameter>
+
+			<!-- Kierunek obrotu -->
+			<parameter name="device-reverse">true</parameter>
+		</axis>
+	</axes>
+	<common>
+		<parameter name="time-rotation-sign">false</parameter>
+
+		<!-- Zachowanie kontrolera w sytuacji braku korekt -->
+		<parameter name="run-standard-interation-wen-no-corrections">false</parameter>
+
+		<parameter name="earth-speed-rotation-error-x">0.0000001</parameter>
+		<parameter name="earth-speed-rotation-error-y">0.0000001</parameter>
+		<parameter name="earth-speed-rotation-error-z">0.0000001</parameter>
+
+		<!-- Tryb predkosci oraz korekty w trybie predkosci -->
+		<parameter name="speed-mode-wait-interval">200</parameter>
+		<parameter name="min-speed-percantage">0.05</parameter>
+		<parameter name="max-speed-percantage">2.00</parameter>
+		<parameter name="min-speed-correction">0.0000001</parameter>
+		<parameter name="suspend-speed-correction">false</parameter>
+		<parameter name="reverse-speed-correction">true</parameter>
+
+		<parameter name="guider-ra-speed">0.5</parameter>
+		<parameter name="guider-dec-speed">0.5</parameter>
+
+		<parameter name="linear-aceleration">8.00</parameter>
+		<parameter name="linear-deceleration">8.00</parameter>
+
+		<parameter name="STAR_APPARENT_PLACE_TYPE">STAR_APPARENT_PLACE_TYPE_ICRS_TO_OBSERVED</parameter>
+		<!-- <parameter name="OBJECT_TRACKING_SPEED">0.0306796157577128</parameter>
+		<parameter name="OBJECT_TRACKING_ACELERATION">8.00</parameter> -->
+
+		<parameter name="stop-timeout">100</parameter>
+
+		<parameter name="log-level">debug</parameter>
+
+		<!-- Domyslna czestotliwosc korekty -->
+		<parameter name="run-frequency">20</parameter>
+
+		<!-- Parameter okresla co ile cykli synchronizacji bedzie pobierana z urzadzenia informacja o  aktualnej pozycji -->
+		<parameter name="tracking-device-synchronisation-frequency">20</parameter>
+
+		<!-- Procentowe zwiekszenie predkosci podczas sledzenia w stosunku do wyznaczonego -->
+		<parameter name="tracking-speed-increase">20</parameter>
+
+		<!-- Czas na wykonanie pierszej korekty po zmianie celu -->
+		<parameter name="first-run-frequency">100</parameter>
+
+		<!-- Liczba prob oczekiwania na zkonczenie przemieszczenie po ktorej zostanie zgloszony blad -->
+		<parameter name="run-frequency-error-count">200</parameter>
+
+		<!-- URL do servera kontrolujacego urzadzenie-->
+		<parameter name="conn-url-request-response">127.0.0.1:20001</parameter>
+		<parameter name="conn-url-notifications">127.0.0.1:20003</parameter>
+		<parameter name="conn-url-client">0.0.0.0:20000</parameter>
+
+		<!-- Flaga mowiaca czy logowac pozycje generowane przez kontroler do pliku -->
+		<parameter name="trace-position">true</parameter>
+
+	</common>
+</configuration-astro>

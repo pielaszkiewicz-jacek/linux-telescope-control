@@ -1,0 +1,6 @@
+#ifndef __tlinsRampGeneratorParametersListStatic_hpp__
+#define __tlinsRampGeneratorParametersListatic_hpp__
+
+#include <parameters/tlinsRampGeneratorParametersList.hpp>
+
+#endif

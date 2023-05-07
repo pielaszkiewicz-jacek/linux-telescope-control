@@ -1,0 +1,12 @@
+#!/bin/sh
+
+export LD_LIBRARY_PATH=/home/jacek/development/project/external/release/lib:/home/jacek/development/project/external/release/lib64:${LD_LIBRARY_PATH}
+export PATH=/home/jacek/development/project/external/release:${PATH}
+
+
+rm CMakeLists.txt 2> /dev/null
+ln -s CMakeLists-x86.txt CMakeLists.txt
+
+cmake .
+make -j24
+make install

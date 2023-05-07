@@ -1,0 +1,15 @@
+[Unit]
+Description=TLINS Astronomy engine
+After=tlins.service
+
+[Service]
+Type=simple
+Restart=yes
+IgnoreSIGPIPE=no
+KillMode=process
+Environment="LD_LIBRARY_PATH=/home/tlins/lib:${LD_LIBRARY_PATH}"
+ExecStartPre=/bin/sleep 5
+ExecStart=/home/tlins/bin/tlinsAstro /home/tlins/cfg/configuration-astro.xml /home/tlins/logs
+
+[Install]
+WantedBy=multi-user.target

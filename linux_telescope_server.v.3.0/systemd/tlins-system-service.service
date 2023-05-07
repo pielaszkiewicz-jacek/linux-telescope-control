@@ -1,0 +1,15 @@
+[Unit]
+Description=TLINS system service events monitor
+After=tlins.service tlinsAstro.service
+
+[Service]
+Type=simple
+Restart=yes
+IgnoreSIGPIPE=no
+KillMode=process
+Environment="LD_LIBRARY_PATH=/home/tlins/lib:${LD_LIBRARY_PATH}"
+ExecStart=/home/tlins/bin/tlins_system_service /home/tlins/cfg/configuration-system-service.xml /home/tlins/logs
+
+[Install]
+WantedBy=multi-user.target
+

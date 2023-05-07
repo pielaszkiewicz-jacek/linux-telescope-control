@@ -1,0 +1,4 @@
+#ifndef __tlinsIERSInfoManagerStatic_hpp__
+#define __tlinsIERSInfoManagerStatic_hpp__
+
+#endif

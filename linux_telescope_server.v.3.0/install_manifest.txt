@@ -1,0 +1,5 @@
+/home/jacek/development/project/current/x86/libtlins_rpc.a
+/home/jacek/development/project/current/x86/libtlins_system_service_client.a
+/home/jacek/development/project/current/x86/libtlins_client.a
+/home/jacek/development/project/current/x86/libtlins_loger.a
+/home/jacek/development/project/current/x86/libtlins_attitude.a

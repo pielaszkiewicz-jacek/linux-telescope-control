@@ -1,0 +1,540 @@
+project (tlins_server C CXX)
+
+#
+# Target
+#
+set(CMAKE_SYSTEM_NAME ARM)
+
+set(PRD_ROOT					"/home/jacek/development")
+
+#
+# Compiler
+#
+set(GNU_SDK						"/opt/toolchains/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu")
+set(CMAKE_C_COMPILER			"${GNU_SDK}/bin/aarch64-linux-gnu-gcc")
+set(CMAKE_CXX_COMPILER			"${GNU_SDK}/bin/aarch64-linux-gnu-g++")
+
+set(PROTOC_EXE					"${PRD_ROOT}/project/external/release/bin/protoc")
+set(GRPC_PLUG_EXE				"${PRD_ROOT}/project/external/release/bin/grpc_cpp_plugin")
+
+#
+# Minimalna wersja cmake
+#
+cmake_minimum_required(VERSION 3.0)
+
+#
+# Stale
+#
+set(XERCES						"${PRD_ROOT}/libs/xerces-c-3.1.1")
+set(TINXML						"${PRD_ROOT}/libs/arm/local")
+set(LINUX						"${PRD_ROOT}/libs/linux")
+set(RAPIDJASON					"${PRD_ROOT}/libs/rapidjson")
+set(PROTOBUF					"${PRD_ROOT}/project/external/release.arm/")
+set(EIGEN3						"${PRD_ROOT}/libs/eigen3")
+set(MODBUS						"${PRD_ROOT}/libs/arm/local")
+
+set(PROJECT_DIR					"${PRD_ROOT}/project/linux_telescope_server.v.2.0")
+
+#
+# Link libraries
+#
+link_directories(				${PROTOBUF}/lib
+								${TINXML}/lib
+								${MODBUS}/lib
+								.
+								)
+
+#
+# Includes
+#
+include_directories(			${PROTOBUF}/include
+								include
+								include/parameters
+								include/sdevice
+								math/attitude/include
+								math/sofa/include
+								math/astro/include
+								math/limits/include
+								math/attitude/opt_req
+								client/include
+								system_service/include
+								system_service/include/monitors
+								system_service/client/include/
+								client/src
+								generated
+								module
+								/usr/include
+								${LINUX}
+								${TINXML}/include
+								${RAPIDJASON}/include
+								${MODBUS}/include/modbus
+								${EIGEN3}
+								)
+
+add_custom_command(				OUTPUT generated/astro.grpc.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --grpc_out=generated/. --plugin=protoc-gen-grpc=`which ${GRPC_PLUG_EXE}` idl/astro.proto
+								)
+
+add_custom_command(				OUTPUT generated/astro.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --cpp_out=generated/. idl/astro.proto
+								)
+
+add_custom_command(				OUTPUT generated/base.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --cpp_out=generated/. idl/base.proto
+								)
+
+add_custom_command(				OUTPUT generated/base.grpc.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --grpc_out=generated/. --plugin=protoc-gen-grpc=`which ${GRPC_PLUG_EXE}` idl/base.proto
+								)
+
+add_custom_command(				OUTPUT generated/device.grpc.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --grpc_out=generated/. --plugin=protoc-gen-grpc=`which ${GRPC_PLUG_EXE}` idl/device.proto
+								)
+
+add_custom_command(				OUTPUT generated/device.pb.cc
+								COMMAND "${PROTOC_EXE}"  -I=idl --cpp_out=generated/. idl/device.proto
+								)
+
+add_custom_command(				OUTPUT generated/system_service.grpc.pb.cc
+								COMMAND "${PROTOC_EXE}" -I=idl --grpc_out=generated/. --plugin=protoc-gen-grpc=`which ${GRPC_PLUG_EXE}` idl/system_service.proto
+								)
+
+add_custom_command(				OUTPUT generated/system_service.pb.cc
+								COMMAND "${PROTOC_EXE}" -I=idl --cpp_out=generated/. idl/system_service.proto
+								)
+
+set(CMAKE_CXX_FLAGS "-std=c++14")
+add_definitions("-DWITH_DOM"  "-pthread" "-g" "-D__DEBUG__")
+
+#
+# GRPC
+#
+add_library(					tlins_rpc
+								generated/base.pb.cc
+								generated/base.grpc.pb.cc
+								generated/astro.pb.cc
+								generated/astro.grpc.pb.cc
+								generated/device.grpc.pb.cc
+								generated/device.pb.cc
+								generated/system_service.grpc.pb.cc
+								generated/system_service.pb.cc
+								)
+
+#
+#
+#
+add_library(					tlins_client
+								STATIC
+								client/src/tlinsInterfaceException.cpp
+								client/src/tlinsMoveServerInterface.cpp
+								client/src/tlinsAstroEngineInterface.cpp
+								src/tlinsId.cpp
+								)
+
+#
+# Macierz transformacji ukladu wspolrzednych
+#
+add_library(					tlins_matrix
+								STATIC
+								math/attitude/src/tlinsAttitudeProcessor.cpp
+								math/attitude/src/tlinAttitudeIteration.cpp
+								math/attitude/src/tlinmException.cpp
+								math/attitude/src/tlinAttitudeMeasurment.cpp
+ 								math/attitude/src/tlinAttitudeUtilsClass.cpp
+								math/attitude/src/tlinAttitudeProcess.cpp
+                                math/attitude/opt_req/get_quat_from_K.cpp
+                                math/attitude/opt_req/get_quat_from_K_data.cpp
+                                math/attitude/opt_req/get_quat_from_K_initialize.cpp
+                                math/attitude/opt_req/get_quat_from_K_terminate.cpp
+                                math/attitude/opt_req/optimal_request.cpp
+                                math/attitude/opt_req/optimal_request_init.cpp
+								math/attitude/opt_req/vecnorm.cpp
+
+								)
+
+#
+# Limity
+#
+add_library(					tlins_limits
+								STATIC
+								math/limits/src/limits.cpp
+								)
+
+
+#
+# SOFA
+#
+add_library(					tlins_sofa
+								STATIC
+								math/sofa/src/a2af.c
+								math/sofa/src/a2tf.c
+								math/sofa/src/ab.c
+								math/sofa/src/af2a.c
+								math/sofa/src/anp.c
+								math/sofa/src/anpm.c
+								math/sofa/src/apcg13.c
+								math/sofa/src/apcg.c
+								math/sofa/src/apci13.c
+								math/sofa/src/apci.c
+								math/sofa/src/apco13.c
+								math/sofa/src/apco.c
+								math/sofa/src/apcs13.c
+								math/sofa/src/apcs.c
+								math/sofa/src/aper13.c
+								math/sofa/src/aper.c
+								math/sofa/src/apio13.c
+								math/sofa/src/apio.c
+								math/sofa/src/atci13.c
+								math/sofa/src/atciq.c
+								math/sofa/src/atciqn.c
+								math/sofa/src/atciqz.c
+								math/sofa/src/atco13.c
+								math/sofa/src/atic13.c
+								math/sofa/src/aticq.c
+								math/sofa/src/aticqn.c
+								math/sofa/src/atio13.c
+								math/sofa/src/atioq.c
+								math/sofa/src/atoc13.c
+								math/sofa/src/atoi13.c
+								math/sofa/src/atoiq.c
+								math/sofa/src/bi00.c
+								math/sofa/src/bp00.c
+								math/sofa/src/bp06.c
+								math/sofa/src/bpn2xy.c
+								math/sofa/src/c2i00a.c
+								math/sofa/src/c2i00b.c
+								math/sofa/src/c2i06a.c
+								math/sofa/src/c2ibpn.c
+								math/sofa/src/c2ixy.c
+								math/sofa/src/c2ixys.c
+								math/sofa/src/c2s.c
+								math/sofa/src/c2t00a.c
+								math/sofa/src/c2t00b.c
+								math/sofa/src/c2t06a.c
+								math/sofa/src/c2tcio.c
+								math/sofa/src/c2teqx.c
+								math/sofa/src/c2tpe.c
+								math/sofa/src/c2txy.c
+								math/sofa/src/cal2jd.c
+								math/sofa/src/cp.c
+								math/sofa/src/cpv.c
+								math/sofa/src/cr.c
+								math/sofa/src/d2dtf.c
+								math/sofa/src/d2tf.c
+								math/sofa/src/dat.c
+								math/sofa/src/dtdb.c
+								math/sofa/src/dtf2d.c
+								math/sofa/src/ee00a.c
+								math/sofa/src/ee00b.c
+								math/sofa/src/ee00.c
+								math/sofa/src/ee06a.c
+								math/sofa/src/eect00.c
+								math/sofa/src/eform.c
+								math/sofa/src/eo06a.c
+								math/sofa/src/eors.c
+								math/sofa/src/epb2jd.c
+								math/sofa/src/epb.c
+								math/sofa/src/epj2jd.c
+								math/sofa/src/epj.c
+								math/sofa/src/epv00.c
+								math/sofa/src/eqeq94.c
+								math/sofa/src/era00.c
+								math/sofa/src/fad03.c
+								math/sofa/src/fae03.c
+								math/sofa/src/faf03.c
+								math/sofa/src/faju03.c
+								math/sofa/src/fal03.c
+								math/sofa/src/falp03.c
+								math/sofa/src/fama03.c
+								math/sofa/src/fame03.c
+								math/sofa/src/fane03.c
+								math/sofa/src/faom03.c
+								math/sofa/src/fapa03.c
+								math/sofa/src/fasa03.c
+								math/sofa/src/faur03.c
+								math/sofa/src/fave03.c
+								math/sofa/src/fk52h.c
+								math/sofa/src/fk5hip.c
+								math/sofa/src/fk5hz.c
+								math/sofa/src/fw2m.c
+								math/sofa/src/fw2xy.c
+								math/sofa/src/g2icrs.c
+								math/sofa/src/gc2gd.c
+								math/sofa/src/gc2gde.c
+								math/sofa/src/gd2gc.c
+								math/sofa/src/gd2gce.c
+								math/sofa/src/gmst00.c
+								math/sofa/src/gmst06.c
+								math/sofa/src/gmst82.c
+								math/sofa/src/gst00a.c
+								math/sofa/src/gst00b.c
+								math/sofa/src/gst06a.c
+								math/sofa/src/gst06.c
+								math/sofa/src/gst94.c
+								math/sofa/src/h2fk5.c
+								math/sofa/src/hfk5z.c
+								math/sofa/src/icrs2g.c
+								math/sofa/src/ir.c
+								math/sofa/src/jd2cal.c
+								math/sofa/src/jdcalf.c
+								math/sofa/src/ld.c
+								math/sofa/src/ldn.c
+								math/sofa/src/ldsun.c
+								math/sofa/src/num00a.c
+								math/sofa/src/num00b.c
+								math/sofa/src/num06a.c
+								math/sofa/src/numat.c
+								math/sofa/src/nut00a.c
+								math/sofa/src/nut00b.c
+								math/sofa/src/nut06a.c
+								math/sofa/src/nut80.c
+								math/sofa/src/nutm80.c
+								math/sofa/src/obl06.c
+								math/sofa/src/obl80.c
+								math/sofa/src/p06e.c
+								math/sofa/src/p2pv.c
+								math/sofa/src/p2s.c
+								math/sofa/src/pap.c
+								math/sofa/src/pas.c
+								math/sofa/src/pb06.c
+								math/sofa/src/pdp.c
+								math/sofa/src/pfw06.c
+								math/sofa/src/plan94.c
+								math/sofa/src/pmat00.c
+								math/sofa/src/pmat06.c
+								math/sofa/src/pmat76.c
+								math/sofa/src/pm.c
+								math/sofa/src/pmp.c
+								math/sofa/src/pmpx.c
+								math/sofa/src/pmsafe.c
+								math/sofa/src/pn00a.c
+								math/sofa/src/pn00b.c
+								math/sofa/src/pn00.c
+								math/sofa/src/pn06a.c
+								math/sofa/src/pn06.c
+								math/sofa/src/pn.c
+								math/sofa/src/pnm00a.c
+								math/sofa/src/pnm00b.c
+								math/sofa/src/pnm06a.c
+								math/sofa/src/pnm80.c
+								math/sofa/src/pom00.c
+								math/sofa/src/ppp.c
+								math/sofa/src/ppsp.c
+								math/sofa/src/pr00.c
+								math/sofa/src/prec76.c
+								math/sofa/src/pv2p.c
+								math/sofa/src/pv2s.c
+								math/sofa/src/pvdpv.c
+								math/sofa/src/pvm.c
+								math/sofa/src/pvmpv.c
+								math/sofa/src/pvppv.c
+								math/sofa/src/pvstar.c
+								math/sofa/src/pvtob.c
+								math/sofa/src/pvu.c
+								math/sofa/src/pvup.c
+								math/sofa/src/pvxpv.c
+								math/sofa/src/pxp.c
+								math/sofa/src/refco.c
+								math/sofa/src/rm2v.c
+								math/sofa/src/rv2m.c
+								math/sofa/src/rx.c
+								math/sofa/src/rxp.c
+								math/sofa/src/rxpv.c
+								math/sofa/src/rxr.c
+								math/sofa/src/ry.c
+								math/sofa/src/rz.c
+								math/sofa/src/s00a.c
+								math/sofa/src/s00b.c
+								math/sofa/src/s00.c
+								math/sofa/src/s06a.c
+								math/sofa/src/s06.c
+								math/sofa/src/s2c.c
+								math/sofa/src/s2p.c
+								math/sofa/src/s2pv.c
+								math/sofa/src/s2xpv.c
+								math/sofa/src/sepp.c
+								math/sofa/src/seps.c
+								math/sofa/src/sp00.c
+								math/sofa/src/starpm.c
+								math/sofa/src/starpv.c
+								math/sofa/src/sxp.c
+								math/sofa/src/sxpv.c
+								math/sofa/src/taitt.c
+								math/sofa/src/taiut1.c
+								math/sofa/src/taiutc.c
+								math/sofa/src/tcbtdb.c
+								math/sofa/src/tcgtt.c
+								math/sofa/src/tdbtcb.c
+								math/sofa/src/tdbtt.c
+								math/sofa/src/tf2a.c
+								math/sofa/src/tf2d.c
+								math/sofa/src/tr.c
+								math/sofa/src/trxp.c
+								math/sofa/src/trxpv.c
+								math/sofa/src/tttai.c
+								math/sofa/src/tttcg.c
+								math/sofa/src/tttdb.c
+								math/sofa/src/ttut1.c
+								math/sofa/src/ut1tai.c
+								math/sofa/src/ut1tt.c
+								math/sofa/src/ut1utc.c
+								math/sofa/src/utctai.c
+								math/sofa/src/utcut1.c
+								math/sofa/src/xy06.c
+								math/sofa/src/xys00a.c
+								math/sofa/src/xys00b.c
+								math/sofa/src/xys06a.c
+								math/sofa/src/zp.c
+								math/sofa/src/zpv.c
+								math/sofa/src/zr.c
+								)
+
+#
+# Loger
+#
+add_library(					tlins_loger
+								STATIC
+								src/tlins_global.cpp
+								src/tlinsLogger.cpp
+								src/tlinsException.cpp
+								src/parameters/tlinsParametersList.cpp
+								src/parameters/tlinsParametersException.cpp
+								)
+
+add_library(					tlins_client_loger
+								STATIC
+								client/src/tlinsClientGlobal.cpp
+								src/tlinsLogger.cpp
+								src/tlinsException.cpp
+								src/parameters/tlinsParametersList.cpp
+								src/parameters/tlinsParametersException.cpp
+								)
+
+add_executable(					tlins
+								src/tlins_main.cpp
+								src/tlins_math.cpp
+								src/tlinsMutex.cpp
+								src/tlinsXMLParser.cpp
+								src/parameters/tlinsConfigurationParser.cpp
+								src/parameters/tlinsDeviceParameters.cpp
+								src/parameters/tlinsDeviceParametersList.cpp
+								src/parameters/tlinsGlobalParametersList.cpp
+								src/parameters/tlinsMainDeviceParameters.cpp
+								src/parameters/tlins_parameters.cpp
+								src/parameters/tlinsSystemParametersList.cpp
+								src/sdevice/tlinsSerialDevice.cpp
+								src/sdevice/tlinsSerialDeviceException.cpp
+								src/sdevice/tlinsSerialDeviceRequest.cpp
+
+								src/sdevice/tlinsSerialServer.cpp
+ 								)
+
+add_dependencies(				tlins
+								tlins_client
+								tlins_limits
+								tlins_sofa
+								tlins_rpc
+								tlins_loger
+								tlins_matrix)
+
+target_link_libraries(			tlins
+								tlins_loger
+								tlins_client
+								tlins_limits
+								tlins_sofa
+								tlins_rpc
+								tlins_matrix
+								"-lc"
+								"-lcrypt"
+								"-ldl"
+								"-lm"
+								"-lnsl"
+								"-lpthread"
+								"-lresolv"
+								"-lrt"
+								"-lstdc++"
+								"-lutil"
+								"-ltinyxml"
+								"-lprotobuf"
+								"-lgrpc++"
+								"-g"
+								"-lmodbus"
+								)
+
+#
+#
+#
+add_library(					tlins_system_service_client
+								system_service/client/src/tlinsSystemServiceClient.cpp
+								)
+
+add_executable(					tlins_system_service
+								system_service/src/tlinsSystemService.cpp
+								system_service/src/monitors/tlinsKeybordMonitor.cpp
+								system_service/src/monitors/tlinsJoystickMonitor.cpp
+								system_service/client/src//tlinsDefs.cpp
+								src/tlinsXMLParser.cpp
+								system_service/src/main.cpp
+								system_service/src/tlinsSystemMonitorConfiguration.cpp
+								)
+
+target_link_libraries(			tlins_system_service
+								tlins_loger
+								tlins_rpc
+								"-lprotobuf"
+								"-lgrpc++"
+								"-lpthread"
+								"-ltinyxml"
+)
+
+# #########################################
+
+add_executable(					tlinsAstro
+								math/astro/src/tlinsStarApparentPlaceCalculationSofa.cpp
+								math/astro/src/tlinsAstroObjectSimple.cpp
+								math/astro/src/tlinsObservationPlace.cpp
+								math/astro/src/tlinsAstroObject.cpp
+								math/astro/src/tlinsCoordinate.cpp
+								math/astro/src/tlinsIERSInfo.cpp
+								math/astro/src/tlinsTimeInfo.cpp
+								math/astro/src/tlinsAstroParameters.cpp
+								math/astro/src/tlinsAstroEngineExt.cpp
+								math/astro/src/tlinsIERSInfoManager.cpp
+								math/astro/src/tlinsEnvironment.cpp
+								math/astro/src/tlinsFullCoordinate.cpp
+								math/astro/src/tlinsAstroEnginConfiguration.cpp
+								src/parameters/tlins_parameters.cpp
+								src/tlins_math.cpp
+								src/tlinsXMLParser.cpp
+								math/astro/src/astroMain.cpp
+								)
+
+add_dependencies(				tlinsAstro
+								tlins_client_loger
+								tlins_client
+								tlins_sofa
+								tlins_matrix
+								tlins_rpc
+								)
+
+target_link_libraries(			tlinsAstro
+								tlins_client
+								tlins_sofa
+								tlins_matrix
+								tlins_rpc
+								tlins_client_loger
+								"-lc"
+								"-lcrypt"
+								"-ldl"
+								"-lm"
+								"-lnsl"
+								"-lpthread"
+								"-lresolv"
+								"-lrt"
+								"-lstdc++"
+								"-lutil"
+								"-ltinyxml"
+								"-lprotobuf"
+								"-lgrpc++"
+								"-g"
+								)
