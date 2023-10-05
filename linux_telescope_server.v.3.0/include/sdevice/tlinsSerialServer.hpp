@@ -2,9 +2,12 @@
 #define __tlinsSerialServer_hpp__
 
 #include <device.grpc.pb.h>
+#include <limits.h>
 #include <tlinsSerialDevice.hpp>
 #include <tlinsSerialDeviceException.hpp>
 #include <tlinsSerialGpio.hpp>
+#include <tlins_math.hpp>
+
 
 #include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
@@ -64,13 +67,15 @@ enum class tlinsSerialRequestStatusResult {
 
 enum class tlinsSerialServerMode {
 	// Tryb pracy interpolowany. Synchronizowane sa wszystkie osie
-	// Dostepe typy operacji: INTERPOLATED, POSITION, SPEED oraz STOP
+	// Dostepe typy operacji: INTERPOLATED, POSITION, oraz STOP
 	// Inne typy rzadan beda odrzucae.
 	MODE_SYNCHRONISED = 1,
 
 	// Tryb separowany
 	// Dostepe typy operacji: POSITION, SPEED oraz STOP. Inne typy rzadan beda odrzucae.
-	MODE_SEPARATE_AXIS = 2
+	MODE_SEPARATE_AXIS = 2,
+
+	MODE_NONE = 3
 };
 
 //
@@ -105,13 +110,23 @@ struct DeviceLimitDefinition {
 // Definicja parameterow urzdzenia branych podczas wyznaczania obszaru niedostepnego dla tubusa
 struct DeviceLimitDeviceDefinition {
 	// Parametery d1 i d2 zwiazane z konfiguracja montazu i przechowywane są w konfiguracji
-	double h;  // Przesuniecie wzdluz osi Z podstawy monatazu
-	double r1; // Pierwsza polowa tubusa
-	double r2; // druga polowa tubusa polowa tubusa
-	double dx; // Przesuniecie dlaosi X
-	double dz; // Przesuniecie dla osi Z
+	double h{0.0};  // Przesuniecie wzdluz osi Z podstawy monatazu
+	double r1{0.0}; // Pierwsza polowa tubusa
+	double r2{0.0}; // druga polowa tubusa polowa tubusa
+	double dx{0.0}; // Przesuniecie dlaosi X
+	double dz{0.0}; // Przesuniecie dla osi Z
 
 	std::vector<std::pair<std::string, double>> deviceMountAngles;
+
+	// Parametery podstawy
+	int             legs{3};                      // Liczba nog montazu
+	double          legRadius{30.0};              // Promien nogi montazu
+	Eigen::Vector3d legsZOffset{0.0, 0.0, -20.0}; // Przesuniecie nog montazu
+	double          legsStartAngle{0.0}; // Kat obrotu w okol osi Z pierwszej nogi monatazu. Wyznaczany obserwacyjnie
+	double          legsAngle{tlinsMath::PI / 3.0 * 2.0}; // Kat pod ktorym pochylona jest noga montazu
+	double          tubeRadius{110.0};                    // Srednica tuby
+	double          baseRadius{75.0};                     // Promien glonej kolumny montazu
+	double          baseLength{300.0};                    // Dlugośc bazy montazu
 
 	void addAngle(const std::string &a, const double val)
 	{
@@ -120,13 +135,7 @@ struct DeviceLimitDeviceDefinition {
 
 	// Parametr dlugosci tubusa i odleglosci jednego konca tubusa od osi oraz srednicy tubusa sa przekjazywane sa z
 	// zewnatrz lub konfigurane w pliuku
-	long frequency; // W milisekundach
-
-
-	// Domyslny konstruktory i destruktor
-	DeviceLimitDeviceDefinition(const double h_, const double r1_, const double r2_, const double dx_, const double dz_,
-	                            const long frequency_)
-	    : h{h_}, r1{r1_}, r2{r2_}, dx{dx_}, dz{dz_}, frequency{frequency_} {};
+	long frequency{0L}; // W milisekundach
 
 	DeviceLimitDeviceDefinition &operator=(const DeviceLimitDeviceDefinition &v) = default;
 	// Domyslny konstruktory i destruktor
@@ -135,9 +144,10 @@ struct DeviceLimitDeviceDefinition {
 	virtual ~DeviceLimitDeviceDefinition()                            = default;
 };
 
+
 class MainDeviceMoreRequestsThread;
 
-class MainDeviveLimit {
+class MainDeviceLimit {
   public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -149,7 +159,7 @@ class MainDeviveLimit {
 	std::set<std::string> confirmations;
 
 	// Ustawienia limitu
-	DeviceLimitDefinition deviceLimitDefinition;
+	// DeviceLimitDefinition deviceLimitDefinition;
 
 	// Konfiguracja urzadzenia zwiazana z limitem
 	DeviceLimitDeviceDefinition deviceLimitConfiguration;
@@ -188,36 +198,33 @@ class MainDeviveLimit {
 	// Metoda bedzie uzywana w momencie gdy:
 	bool checkColision(const Eigen::Vector3d &position);
 
-	// Metoda sprawdza czy sciezka miedzy pozycjami jest dozwolona. Czy nie bedzie sytuacji ze zostanie osiagniety limit.
-	bool checkPath(const Eigen::Vector2d &start, const Eigen::Vector2d &end, const double deltaX, const double deltaY);
-
 	void startMonitoring(void);
 	void stopMonitoring(void);
 
 	void endTrack(void);
 	void join();
 
-	explicit MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThread> &mainDeviceThread_,
+	explicit MainDeviceLimit(const std::shared_ptr<MainDeviceMoreRequestsThread> &mainDeviceThread_,
 	                         const DeviceLimitDeviceDefinition                   &limitConf);
-	MainDeviveLimit() = default;
-	virtual ~MainDeviveLimit();
+	MainDeviceLimit() = default;
+	virtual ~MainDeviceLimit();
 };
 
 
 class MainDeviveLimitManager {
   private:
-	std::map<std::string, std::shared_ptr<MainDeviveLimit>> devicesMap;
+	std::map<std::string, std::shared_ptr<MainDeviceLimit>> devicesMap;
 
 	MainDeviveLimitManager() = default;
 
   public:
 	// Metoda na podstawie konfiguracji tworzy obiekty urzadzen
-	void addDevicesLimit(const std::string &devName, const std::shared_ptr<MainDeviveLimit> &devLim);
+	void addDevicesLimit(const std::string &devName, const std::shared_ptr<MainDeviceLimit> &devLim);
 
 	// Zwraca kon urzadzenia
-	std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator find(const std::string &name);
-	std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator begin();
-	std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator end();
+	std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator find(const std::string &name);
+	std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator begin();
+	std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator end();
 
   public:
 	static MainDeviveLimitManager &getInstance();
@@ -229,6 +236,10 @@ class MainDeviveLimitManager {
  * Pracuje w dwoch zasadniczych trybach. 1 Synchroniczny
  */
 class MainDeviceMoreRequestsThread {
+
+  public:
+	void enforceServerMode(const tlinsSerialServerMode mode);
+
   private:
 	//
 	// -- Kolejki oczekujacych rzadan
@@ -258,14 +269,14 @@ class MainDeviceMoreRequestsThread {
 	// Mapa jest wykorzystywana w celu wygenerowania rzadania zatrzymania
 	std::map<std::string, tlinsServerDirectionInfo> directions;
 
-	// Mqpa identyfikatorow. Dla kazdej osoi zawie ID potwierdzenia ktore jest oczekiwane
+	// Mqpa identyfikatorow. Dla kazdej osi zawie ID potwierdzenia ktore jest oczekiwane
 	std::map<std::string, unsigned long> reqIdsMap;
 
 	// Referencja na urzadzenie glowne obslugiwane przez watek
 	std::shared_ptr<tlinsSerialMainDevice> mainDevice;
 
 	// Tryb pracy serwera
-	tlinsSerialServerMode serverMode;
+	std::atomic<tlinsSerialServerMode> serverMode{tlinsSerialServerMode::MODE_SEPARATE_AXIS};
 
 	// Glwny mutex synchronizujacy dostep do servera
 	std::recursive_mutex serverMtx;
@@ -274,7 +285,7 @@ class MainDeviceMoreRequestsThread {
 	std::condition_variable serverCv;
 
 	// Znacznik konca watku
-	std::atomic<bool> end;
+	std::atomic<bool> end{false};
 
 	//
 	// Struktura przechowuje informacje o statusie rzadania
@@ -461,7 +472,8 @@ class MainDeviceMoreRequestsThread {
 
   public:
 	// Wstawienie rzadania
-	void enqueRequest(const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req);
+	void enqueRequest(const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req,
+	                  const tlinsSerialServerMode serverMode = tlinsSerialServerMode::MODE_NONE);
 
 	// Oczekiwanie
 	void join();
@@ -476,6 +488,44 @@ class MainDeviceMoreRequestsThread {
 //
 // ---------------------------------------------------------------------
 //
+class tlinsSerialServerRequestOperation {
+  public:
+	virtual void operator()() = 0;
+
+	virtual ~tlinsSerialServerRequestOperation() = default;
+};
+
+class tlinsSerialServer;
+
+class tlinsSerialServerRequestOperationServerMode : public tlinsSerialServerRequestOperation {
+  private:
+	tlinsSerialServer    &parent;
+	tlinsSerialServerMode mode;
+
+  public:
+	virtual void operator()();
+
+	tlinsSerialServerRequestOperationServerMode() = default;
+	explicit tlinsSerialServerRequestOperationServerMode(tlinsSerialServer &parent, const tlinsSerialServerMode mode_);
+
+	~tlinsSerialServerRequestOperationServerMode() = default;
+};
+
+class tlinsSerialServerRequestOperationRequest : public tlinsSerialServerRequestOperation {
+  private:
+	tlinsSerialServer                            &parent;
+	std::shared_ptr<tlinsSerialDeviceMoveRequest> request;
+
+  public:
+	virtual void operator()();
+
+	tlinsSerialServerRequestOperationRequest() = default;
+	tlinsSerialServerRequestOperationRequest(tlinsSerialServer                             &parent,
+	                                         std::shared_ptr<tlinsSerialDeviceMoveRequest> &request);
+
+	~tlinsSerialServerRequestOperationRequest() = default;
+};
+
 
 class tlinsSerialServer {
   private:
@@ -483,7 +533,7 @@ class tlinsSerialServer {
 	std::map<std::string, std::shared_ptr<MainDeviceMoreRequestsThread>> serverThreads;
 
 	// Mapa managerow odpowiuedzialnych za sledzenie czy urzadzenie znajduje się w lub poza obszarem zabronionym
-	std::map<std::string, std::shared_ptr<MainDeviveLimit>> serverLimits;
+	std::map<std::string, std::shared_ptr<MainDeviceLimit>> serverLimits;
 
 	std::mutex mtx;
 
@@ -496,7 +546,8 @@ class tlinsSerialServer {
 	bool registerDeviceLimit(const std::string &devName, const std::shared_ptr<tlinsSerialMainDevice> &dev);
 
 	// Wstawienie rzadania do wskazanego urzadzenia
-	void enqueRequest(const std::string &devName, const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req);
+	void enqueRequest(const std::string &devName, const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req,
+	                  const tlinsSerialServerMode serverMode = tlinsSerialServerMode::MODE_NONE);
 
 	// Wstawienie rzadania do wskazanego urzadzenia
 	void setServerMode(const std::string &devName, const tlinsSerialServerMode mode);

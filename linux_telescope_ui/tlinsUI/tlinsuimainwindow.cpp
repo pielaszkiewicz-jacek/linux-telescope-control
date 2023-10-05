@@ -297,22 +297,23 @@ void tlinsUIMainWindow::resizeEvent(QResizeEvent*)
 }
 
 tlinsUIMainWindow::tlinsUIMainWindow(QWidget* parent)
-    : QMainWindow(parent)
-    , editObject(this)
-    , ui(new Ui::tlinsUIMainWindow)
-    , pilotWidget { this }
-    , calibrationWidget { this }
-    , targetWidget { this }
-    , engineStateWidget { this }
-    , iersWidget { this }
-    , databaseWidget { this }
-    , environmentWidget { this }
-    , settingsWidget { this }
-    , observationPlaceWidget { this }
-    , pilotShortcutsWidget { this }
-    , dateTimeWidget { this }
-    , environmentSetWidget { this }
-    , currentToolWidget { nullptr }
+    : QMainWindow(parent),
+    editObject(this),
+    ui(new Ui::tlinsUIMainWindow),
+    pilotWidget { this },
+    calibrationWidget { this },
+    targetWidget { this },
+    engineStateWidget { this },
+    iersWidget { this },
+    databaseWidget { this },
+    environmentWidget { this },
+    settingsWidget { this },
+    observationPlaceWidget { this },
+    pilotShortcutsWidget { this },
+    dateTimeWidget { this },
+    environmentSetWidget { this },
+    colliostionWidget { this },
+    currentToolWidget { nullptr }
 {
     ui->setupUi(this);
 
@@ -456,7 +457,7 @@ tlinsUIMainWindow::tlinsUIMainWindow(QWidget* parent)
     currentToolWidget = pilotWidgetButton;
 
     //
-    // Przyciski po lewej stronie
+    // Przyciski po prawej stronie
     //
     {
         settingsWidgetButton = new tlinsToolBarButton(
@@ -490,6 +491,18 @@ tlinsUIMainWindow::tlinsUIMainWindow(QWidget* parent)
             this, ui->stackedWidget);
         ui->toolBar_2->addWidget(pilotStatusWidgetButton);
     }
+
+    {
+        colliostionWidgetButton = new tlinsToolBarButton(
+            QString { ":/icons/constraint.svg" },
+            QString { "Collistions" },
+            [this]() {
+                ui->stackedWidget->setCurrentWidget(colliostionWidgetBase);
+            },
+            this, ui->stackedWidget);
+        ui->toolBar_2->addWidget(colliostionWidgetButton);
+    }
+
 
     {
         // Separator dla przcisku wyjscia
@@ -622,6 +635,12 @@ tlinsUIMainWindow::tlinsUIMainWindow(QWidget* parent)
         ":/icons/status.svg",
         ui->stackedWidget };
     ui->stackedWidget->addWidget(pilotStatusWidgetBase);
+
+    colliostionWidgetBase = new tlinsToolsBaseWidget { &colliostionWidget,
+        "Collistion detection managment",
+        ":/icons/status.svg",
+        ui->stackedWidget };
+    ui->stackedWidget->addWidget(colliostionWidgetBase);
 
     ui->stackedWidget->setCurrentWidget(pilotWidgetBase);
 

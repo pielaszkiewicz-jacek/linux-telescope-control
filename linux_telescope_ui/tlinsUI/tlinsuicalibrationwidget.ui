@@ -1142,6 +1142,41 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>referenceObjects</tabstop>
+  <tabstop>btSave</tabstop>
+  <tabstop>btLoad</tabstop>
+  <tabstop>btSearchObject</tabstop>
+  <tabstop>btRemoveObject</tabstop>
+  <tabstop>checkBoxEnableDebug</tabstop>
+  <tabstop>pbGenerateMatrix</tabstop>
+  <tabstop>a11</tabstop>
+  <tabstop>a12</tabstop>
+  <tabstop>a13</tabstop>
+  <tabstop>a21</tabstop>
+  <tabstop>a22</tabstop>
+  <tabstop>a23</tabstop>
+  <tabstop>a31</tabstop>
+  <tabstop>a32</tabstop>
+  <tabstop>a33</tabstop>
+  <tabstop>checkAsDeferred</tabstop>
+  <tabstop>singleObjectMeasurments</tabstop>
+  <tabstop>btSetReference</tabstop>
+  <tabstop>confirmDeferred</tabstop>
+  <tabstop>btCloseCalibration</tabstop>
+  <tabstop>tManual</tabstop>
+  <tabstop>tStandard</tabstop>
+  <tabstop>tSpeed</tabstop>
+  <tabstop>tGuider</tabstop>
+  <tabstop>chbOverriteErrors</tabstop>
+  <tabstop>btStartCalibration</tabstop>
+  <tabstop>axiesDirectionGroup</tabstop>
+  <tabstop>chbXReverse</tabstop>
+  <tabstop>chbYReverse</tabstop>
+  <tabstop>btMoveUp</tabstop>
+  <tabstop>btMoveDown</tabstop>
+  <tabstop>scrollArea</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>
@@ -1153,8 +1188,8 @@
    <slot>checkBoxEnableDebugSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>123</x>
-     <y>463</y>
+     <x>144</x>
+     <y>365</y>
     </hint>
     <hint type="destinationlabel">
      <x>818</x>

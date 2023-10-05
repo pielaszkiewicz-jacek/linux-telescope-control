@@ -2,9 +2,221 @@
 #include "tlinAttitudeUtilsClass.hpp"
 #include "tlins_math.hpp"
 #include <cmath>
+#include <set>
+#include <tlinsLogger.hpp>
 
 namespace limits
 {
+
+std::pair<tlinsLimitsMount::colistionType, int> tlinsLimitsMount::checkColistion(const Eigen::Vector3d &pos)
+{
+	auto inBase = [this](const Eigen::Vector3d &p) -> bool {
+		auto r  = p(0) * p(0) + p(1) * p(1);
+		auto rb = baseRadius * baseRadius;
+		auto z  = p(3);
+
+		if (r <= rb && z <= 0.0) {
+			return true;
+		}
+		return false;
+	};
+
+	auto inLeg = [this](const Eigen::Vector3d &p) -> bool {
+		auto r  = p(0) * p(0) + p(1) * p(1);
+		auto rb = legRadius * legRadius;
+		auto z  = p(3);
+
+		if (r <= rb && z >= 0.0) {
+			return true;
+		}
+		return false;
+	};
+
+	// Weryfikacja czy punkt znajduje sie wewnatrz bazowego walca
+	if (inBase(pos)) {
+		return std::pair<tlinsLimitsMount::colistionType, int>{tlinsLimitsMount::colistionType::COLISTION_BASE, -1};
+	}
+
+	auto angle = legsSartAngle;
+
+	// Wrtyfikacja poszczegolnych nog
+	// Weryfikacja polega na tym ze przekazana pozycja jest
+	// negatywni obracana i przesuwana, aby zasymulowac stan w ktorym
+	// noga jest walcem ktorego srode podstawy jest w punkci [0.0, 0.0, 0.0]
+	// i walec jest skierowany w strone dodanich wartoscin wzdloz osi Z.
+	for (auto i = 0; i < legs; i++) {
+
+		// Obrot wokol osi X
+		Eigen::Matrix3d rotX;
+		attitude::tlinAttitudeUtilsClass::buildXRotaionMatrix(-1.0 * legsAngle, rotX);
+
+		// Obrot wokol osi Z
+		Eigen::Matrix3d rotZ;
+		attitude::tlinAttitudeUtilsClass::buildZRotaionMatrix(-1.0 * angle, rotZ);
+
+		// wynikowa macierz obrotu
+		Eigen::Matrix3d rot = rotX * rotZ;
+
+		// Wspolrzedna po obrocie
+		Eigen::Vector3d tmpPosRot = rot * pos;
+
+		// Przesuniecie do poczatku ukladu wspolrzednych
+		Eigen::Vector3d tmpPosMove = tmpPosRot - legsZOffset;
+
+		// Sprwdzenie kolizji
+		if (inLeg(tmpPosMove)) {
+			return std::pair<tlinsLimitsMount::colistionType, int>{tlinsLimitsMount::colistionType::COLISTION_LEG, i};
+		}
+
+		angle += tlinsMath::PI_2 / static_cast<double>(legs);
+	}
+	return std::pair<tlinsLimitsMount::colistionType, int>{tlinsLimitsMount::colistionType::COLISTION_NONE, -1};
+}
+
+std::vector<std::pair<tlinsLimitsMount::colistionType, int>>
+tlinsLimitsMount::detectColistion(const Eigen::Vector3d &s, const Eigen::Vector3d &e, const double deltaMove)
+{
+	std::vector<std::pair<tlinsLimitsMount::colistionType, int>> result;
+
+	// Sprawdzenie czy punkt docelowy sam w sobie jest w kolizji
+	auto status = tlinsLimitsMount::checkColistion(e);
+	if (status.first != tlinsLimitsMount::colistionType::COLISTION_NONE) {
+		// Puinkt doclewoy jest nie osiagalny bo jest w kolizji
+		result.push_back(status);
+		return result;
+	}
+
+	// Konwersja do wspolrzednych sferycznych
+	Eigen::Vector2d outS;
+	Eigen::Vector2d outE;
+	double          outSR;
+	double          outER;
+
+	attitude::tlinAttitudeUtilsClass::toSpeherical(s, outS, outSR);
+	attitude::tlinAttitudeUtilsClass::toSpeherical(e, outE, outER);
+	double R{outSR}; // Oba promienie sa identyczne
+
+	// Odleglasc ktora jest brana to odleglosc minimalna
+	auto diff0 = attitude::tlinAttitudeUtilsClass::deltaMinimumPosition(outS(0), outE(0)); // alfa
+	auto diff1 = attitude::tlinAttitudeUtilsClass::deltaMinimumPosition(outS(1), outE(1)); // beta
+
+	auto dsAlfa = diff0.first / deltaMove;
+	auto dsBeta = diff1.first / deltaMove;
+
+	if (diff0.second) {
+		dsAlfa *= -1.0;
+	}
+
+	if (diff1.second) {
+		dsBeta *= -1.0;
+	}
+
+	// Przejscie po najkrotszej drodze z zadanym kwantem
+	std::set<int> wasColistion;
+	double        moveAlfa = 0.0;
+	double        moveBeta = 0.0;
+	for (;; moveAlfa += dsAlfa, moveBeta += dsBeta) {
+		auto end = false;
+		if (::fabs(moveAlfa) >= diff0.first || ::fabs(moveBeta) >= diff1.first) {
+			moveAlfa = diff0.first;
+			moveBeta = diff1.first;
+			end      = true;
+		}
+
+		auto alfa = outS(0) + moveAlfa;
+		auto beta = outS(1) + moveBeta;
+
+		attitude::tlinAttitudeUtilsClass::normAngles(alfa);
+		attitude::tlinAttitudeUtilsClass::normAngles(beta);
+
+		Eigen::Vector2d nPos{alfa, beta};
+		Eigen::Vector3d outPos;
+
+		// Detekcja kolizji z noga lub baza montazu
+		attitude::tlinAttitudeUtilsClass::toCartesian(nPos, outPos, R);
+
+		auto status = tlinsLimitsMount::checkColistion(outPos);
+		if (status.first != tlinsLimitsMount::colistionType::COLISTION_NONE) {
+			if (wasColistion.count(status.second) == 0) {
+				wasColistion.insert(status.second);
+				result.push_back(status);
+			}
+		}
+
+		if (end) {
+			break;
+		}
+	}
+	return result;
+}
+
+/*
+    Metoda wygeneruje sciezke
+    SP(1)              SP(2)
+         +------------+
+         |            |
+         |            |
+         ^            +
+         S            E
+ */
+std::vector<Eigen::Vector3d> tlinsLimitsMount::makePathWithoutCollision(const Eigen::Vector3d &s_,
+                                                                        const Eigen::Vector3d &e_, const double delta,
+                                                                        const double deltaMove, const int n)
+{
+	auto                         s{s_};
+	auto                         e{e_};
+	std::vector<Eigen::Vector3d> result{};
+
+	// Pierwszy wezel startowy
+	result.push_back(s_);
+
+	auto iter = 0;
+	for (; iter < n; iter++) {
+		// Detekcja kolizji
+		auto colistionStatus = detectColistion(s, e, deltaMove);
+
+		if (colistionStatus.size() == 0) {
+			if (iter != 0) {
+				result.push_back(s);
+				result.push_back(e);
+			}
+			break;
+		}
+		// Idziemy wdłuz osi Z do gory
+		s(3) += delta;
+		e(3) += delta;
+	}
+
+	// Wezel koncowy
+	result.push_back(e_);
+
+	if (iter >= n) {
+		// Dla maksymalnej liczby iteracji nie udało sie znaleść sciezki omijajacej obszary kolizyjne. Zwracana jest
+		// pusta lista punktow do odwiedzenia
+		return std::vector<Eigen::Vector3d>{};
+	}
+	return result;
+}
+
+
+tlinsLimitsMount::tlinsLimitsMount(const int legs_, const double legRadius_, const Eigen::Vector3d &legsZOffset_,
+                                   const double legsSartAngle_, const double legsAngle_, const double baseRadius_,
+                                   const double baseLength_)
+    : legs{legs_},
+      legRadius{legRadius_},
+      legsZOffset{legsZOffset_},
+      legsSartAngle{legsSartAngle_},
+      legsAngle{legsAngle_},
+      baseRadius{baseRadius_},
+      baseLength{baseLength_}
+{
+}
+
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+
 /*
    Punkty referencyjne okreslone przez uzytkownika definiują stożek który jest fragmentem sfery który jest wykluczony.
    Obszar efektywnie ograniczony jest przez stozek wychodzacy z poczatku ukladu wspolrzednych ktorego powiuechnia
@@ -19,34 +231,24 @@ double tlinsLimitsMath::straightLinesAngleDistance(const Eigen::Vector3d &p1, co
 std::pair<Eigen::Vector3d, Eigen::Vector3d>
 tlinsLimitsMath::kinematicsPosition(const std::vector<tlinsLimitsDeviceInfo> &devInfo)
 {
+	return std::pair<Eigen::Vector3d, Eigen::Vector3d>{{}, {}};
 }
 
-std::pair<Eigen::Vector3d, Eigen::Vector3d> tlinsLimitsMath::kinematicsPositionGemetric2(
-	const double alfa,
-	const double beta,
-	const double r1,
-	const double r2,
-	const double dx,
-	const double dz,
-	const double h,
-	const std::vector<std::pair<std::string, double>> &axis)
+std::pair<Eigen::Vector3d, Eigen::Vector3d>
+tlinsLimitsMath::kinematicsPositionGemetric2(const double alfa, const double beta, const double r1, const double r2,
+                                             const double dx, const double dz, const double h,
+                                             const std::vector<std::pair<std::string, double>> &axis)
 {
+	Eigen::Matrix3d rotX;
+	attitude::tlinAttitudeUtilsClass::buildXRotaionMatrix(alfa, rotX);
 
-	auto buildMatrix = [](const double a, const double b) {
-		Eigen::Matrix3d x;
-		Eigen::Matrix3d z;
-		attitude::tlinAttitudeUtilsClass::buildXRotaionMatrix(a, x);
-		attitude::tlinAttitudeUtilsClass::buildZRotaionMatrix(b, z);
-		return x * z;
-	};
-
-	Eigen::Matrix3d rotX = buildMatrix(alfa, 0.0);
-	Eigen::Matrix3d rotZ = buildMatrix(0.0,  beta);
+	Eigen::Matrix3d rotZ;
+	attitude::tlinAttitudeUtilsClass::buildZRotaionMatrix(beta, rotZ);
 
 	Eigen::Matrix3d rotXYZ{Eigen::Matrix3d::Identity()};
 	if (axis.size() > 0) {
 		for (auto &item : axis) {
-			if        (item.first == "X") {
+			if (item.first == "X") {
 				Eigen::Matrix3d out;
 				attitude::tlinAttitudeUtilsClass::buildXRotaionMatrix(item.second, out);
 				rotXYZ = rotXYZ * out;
@@ -62,15 +264,15 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> tlinsLimitsMath::kinematicsPositionG
 		}
 	}
 
-	Eigen::Vector3d vr1{0.0,        r1, 0.0};
+	Eigen::Vector3d vr1{0.0, r1, 0.0};
 	Eigen::Vector3d vr2{0.0, -1.0 * r2, 0.0};
 
-	Eigen::Vector3d rm1{dx,  0.0, 0.0};
-	Eigen::Vector3d rm2{0.0, 0.0,  dz};
-	Eigen::Vector3d rm3{0.0, 0.0,   h};
+	Eigen::Vector3d rm1{dx, 0.0, 0.0};
+	Eigen::Vector3d rm2{0.0, 0.0, dz};
+	Eigen::Vector3d rm3{0.0, 0.0, h};
 
-	auto res1 = rotXYZ * ( rotZ * ( ( rotX * vr1 ) + rm1 ) + rm2 ) + rm3;
-	auto res2 = rotXYZ * ( rotZ * ( ( rotX * vr2 ) + rm1 ) + rm2 ) + rm3;
+	auto res1 = rotXYZ * (rotZ * ((rotX * vr1) + rm1) + rm2) + rm3;
+	auto res2 = rotXYZ * (rotZ * ((rotX * vr2) + rm1) + rm2) + rm3;
 
 	return std::pair<Eigen::Vector3d, Eigen::Vector3d>{res1, res2};
 }
@@ -344,11 +546,11 @@ bool tlinsLimitsMath::isInRange(const std::vector<std::tuple<Eigen::Vector3d, Ei
 	for (auto &item : limits) {
 		auto p1 = std::get<0>(item);
 		auto p2 = std::get<1>(item);
-		if (!tlinsLimitsMath::isInRange(p1, p2, pos)) {
-			return false;
+		if (tlinsLimitsMath::isInRange(p1, p2, pos)) {
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 }; // namespace limits

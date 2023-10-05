@@ -421,7 +421,154 @@ void tlinsMoveServerInterface::moveRequest(const std::string                    
 // Obsluga limitow ---
 // -------------------
 //
-void tlinsMoveServerInterface::registerLimitAlarm(const std::string &deviceName, std::shared_ptr<tlinsMoveServerLimitsInterfaceCallBack> &cb)
+// Wlaczenie wylaczenie limitow
+void tlinsMoveServerInterface::colistionsDetectionEnable(const std::string &deviceName)
+{
+	tlins::tlinsRpcStatus   response;
+	tlins::tlinsStringValue request;
+	grpc::ClientContext     context;
+
+	// Nazwa urzadzenia
+	request.set_value(deviceName);
+
+	// Wyslanie rzadania
+	auto result = connectionStub->colistionsDetectionEnable(&context, request, &response);
+	if (!result.ok()) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(std::string("Error disable colltion engine"), tlinsInterfaceException::ERROR_RPC_ERROR));
+	}
+
+	if (response.status() != tlins::ErrorCodes::_ERROR_CODE_SUCCESS) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(response.errordescription(), tlinsInterfaceException::ERROR_ENABLE_COLLITION_ENGINE));
+	}
+}
+
+void tlinsMoveServerInterface::colistionsDetectionDisable(const std::string &deviceName)
+{
+	tlins::tlinsRpcStatus   response;
+	tlins::tlinsStringValue request;
+	grpc::ClientContext     context;
+
+	// Nazwa urzadzenia
+	request.set_value(deviceName);
+
+	// Wyslanie rzadania
+	auto result = connectionStub->colistionsDetectionDisable(&context, request, &response);
+	if (!result.ok()) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(std::string("Error disable colltion engine"), tlinsInterfaceException::ERROR_RPC_ERROR));
+	}
+
+	if (response.status() != tlins::ErrorCodes::_ERROR_CODE_SUCCESS) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(response.errordescription(), tlinsInterfaceException::ERROR_DISABLE_COLLITION_ENGINE));
+	}
+}
+
+void tlinsMoveServerInterface::colistionsDetectionSetLimits(const std::string &deviceName, const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> &limits)
+{
+	tlins::tlinsRpcStatus response;
+	tlins::tlinsLimits    request;
+	grpc::ClientContext   context;
+
+	// Nazwa urzadzenia
+	request.mutable_devicename() -> set_value(deviceName);
+
+	// Dodanie poszczegolnych limitow do rzadania
+	for(auto &item: limits) {
+		auto newItem = request.add_limits();
+		auto start   = newItem -> mutable_start();
+		auto end     = newItem -> mutable_end();
+
+		start -> mutable_a1() -> set_value(item.first(0));
+		start -> mutable_a2() -> set_value(item.first(1));
+		start -> mutable_a3() -> set_value(item.first(2));
+		end   -> mutable_a1() -> set_value(item.second(0));
+		end   -> mutable_a2() -> set_value(item.second(1));
+		end   -> mutable_a3() -> set_value(item.second(2));
+	}
+
+	// Wyslanie rzadania
+	auto result = connectionStub->colistionsDetectionSetLimits(&context, request, &response);
+	if (!result.ok()) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(std::string("Error set collistion limits"), tlinsInterfaceException::ERROR_RPC_ERROR));
+	}
+
+	if (response.status() != tlins::ErrorCodes::_ERROR_CODE_SUCCESS) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(response.errordescription(), tlinsInterfaceException::ERROR_SET_COLLITION_LIMITS));
+	}
+}
+
+std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> tlinsMoveServerInterface::colistionsDetectionGetLimits(const std::string &deviceName)
+{
+	tlins::tlinsStringValue  request;
+	tlins::tlinsLimitsResult response;
+	grpc::ClientContext      context;
+
+	// Nazwa urzadzenia
+	request.set_value(deviceName);
+
+	// Wyslanie rzadania
+	auto result = connectionStub->colistionsDetectionGetLimits(&context, request, &response);
+	if (!result.ok()) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(std::string("Error set collistion limits"), tlinsInterfaceException::ERROR_RPC_ERROR));
+	}
+
+	if (response.result().status() != tlins::ErrorCodes::_ERROR_CODE_SUCCESS) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(response.result().errordescription(), tlinsInterfaceException::ERROR_SET_COLLITION_LIMITS));
+	}
+
+	std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> ret{};
+	for(int i = 0; i < response.limits_size(); i++) {
+		Eigen::Vector3d start{
+			response.limits(i).start().a1().value(),
+			response.limits(i).start().a2().value(),
+			response.limits(i).start().a2().value()};
+
+		Eigen::Vector3d end{
+			response.limits(i).end().a1().value(),
+			response.limits(i).end().a2().value(),
+			response.limits(i).end().a2().value()};
+
+		ret.push_back(std::pair<Eigen::Vector3d, Eigen::Vector3d>{start, end});
+	}
+	return ret;
+}
+
+bool tlinsMoveServerInterface::colistionsDetectionTest(const std::string &deviceName, const Eigen::Vector3d &pos)
+{
+	tlins::tlinsTestLimit       request;
+	tlins::tlinsTestLimitResult response;
+	grpc::ClientContext         context;
+
+	// Nazwa urzadzenia
+	request.mutable_devicename() -> set_value(deviceName);
+
+	auto rpos = request.mutable_position();
+	rpos -> mutable_a1() -> set_value(pos(0));
+	rpos -> mutable_a2() -> set_value(pos(1));
+	rpos -> mutable_a3() -> set_value(pos(2));
+
+	// Wyslanie rzadania
+	auto result = connectionStub->colistionsDetectionTest(&context, request, &response);
+	if (!result.ok()) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(std::string("Error set collistion limits"), tlinsInterfaceException::ERROR_RPC_ERROR));
+	}
+
+	if (response.result().status() != tlins::ErrorCodes::_ERROR_CODE_SUCCESS) {
+		// Blad rejestrowania potwierdzenia
+		__THROW__(tlinsInterfaceException(response.result().errordescription(), tlinsInterfaceException::ERROR_SET_COLLITION_LIMITS));
+	}
+	return response.limitstatus().value();
+}
+
+void tlinsMoveServerInterface::colistionsRegisterAlarm(const std::string &deviceName, std::shared_ptr<tlinsMoveServerLimitsInterfaceCallBack> &cb)
 {
 	limitsConfirmationCallbacks -> registerCallback(deviceName, cb);
 

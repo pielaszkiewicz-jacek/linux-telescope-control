@@ -188,7 +188,7 @@ void tlinsAstroEngine::sync(const double ra, const double dec)
 		rest1 *= 60;
 		degris = static_cast<int>(degris_);
 
-		// Minuty
+		//  Minuty
 		double minutes_{0.0};
 		seconds = ::modf(rest1, &minutes_);
 		minutes = static_cast<int>(minutes_);
@@ -347,9 +347,7 @@ void tlinsAstroEngine::trackProcess()
 		dec = dec - tlinsMath::PI_2;
 	}
 
-	while (ra > tlinsMath::PI_2) {
-		ra -= tlinsMath::PI_2;
-	}
+	attitude::tlinAttitudeUtilsClass::normAngles(ra);
 
 	// 10. Modyfikacja aktualnego celu
 	// 10.1 DEC
@@ -845,6 +843,17 @@ void tlinsAstroEngine::signal()
 	lastMoveRequestIdCV.notify_one();
 }
 
+#if 1
+
+double tlinsAstroEngine::deltaMinimumPosition(const double currPos, const double newPos, bool &direction) const
+{
+	auto result = attitude::tlinAttitudeUtilsClass::deltaMinimumPosition(currPos, newPos);
+	direction   = result.second;
+	return result.first;
+}
+
+#else
+
 double tlinsAstroEngine::deltaMinimumPosition(const double currPos, const double newPos, bool &direction) const
 {
 	double diff{0.0};
@@ -870,6 +879,8 @@ double tlinsAstroEngine::deltaMinimumPosition(const double currPos, const double
 
 	return std::fabs(diff);
 }
+
+#endif
 
 extern std::string mainGetLogDir();
 
@@ -1245,6 +1256,8 @@ void tlinsAstroEngine::sendSpeedRequest(const double xV, const bool xDir_, const
 	bool xDir = xDir_;
 	bool yDir = yDir_;
 
+	TLINS_LOG_DEBUG("XV = " + std::to_string(xV) + "; YV = " + std::to_string(yV));
+
 	// Ewentualne odwrocenie kierunku predkosci
 	reverseSpeed(xDir, yDir);
 
@@ -1358,7 +1371,8 @@ bool tlinsAstroEngine::testIterationSpeed()
 	return false;
 }
 
-void tlinsAstroEngine::calculateDeviceCoordinate(const Eigen::Vector3d &apparentPositionXYZ, const Eigen::Matrix3d &earthRot, Eigen::Vector2d &newCoordinate)
+void tlinsAstroEngine::calculateDeviceCoordinate(const Eigen::Vector3d &apparentPositionXYZ,
+                                                 const Eigen::Matrix3d &earthRot, Eigen::Vector2d &newCoordinate)
 {
 	// Wspolrzedna obiektu we wspolrzednych teleskopu
 	Eigen::Vector3d deviceCoordinate = attitudeOptimal * earthRot * apparentPositionXYZ;
@@ -1411,17 +1425,20 @@ void tlinsAstroEngine::iterationSpeed()
 	//
 	// 3. Wyznaczenie pozycji obserwowanej obiektu dla biezacej chwili
 	std::map<tlinsStarApparentPlaceType, tlinsAstroObjectSimple> apparentResult;
-	Eigen::Vector3d apparentPosition;
-	auto apparentPositionM =tlinsAstroEngine::apparentPositionBase(currentTarget.target, apparentResult, apparentPosition, &tv);
+	Eigen::Vector3d                                              apparentPosition;
+	auto                                                         apparentPositionM =
+	    tlinsAstroEngine::apparentPositionBase(currentTarget.target, apparentResult, apparentPosition, &tv);
 
 	//
 	// 3. Wyznaczenie pozycji obserwowanej obiektu dla chwili +1 sekunda
 	std::map<tlinsStarApparentPlaceType, tlinsAstroObjectSimple> apparentResultNext;
 	tv.tv_sec += 1L;
 	Eigen::Vector3d apparentPositionNext;
-	auto apparentPositionNextM =tlinsAstroEngine::apparentPositionBase(currentTarget.target, apparentResultNext, apparentPositionNext, &tv);
+	auto            apparentPositionNextM =
+	    tlinsAstroEngine::apparentPositionBase(currentTarget.target, apparentResultNext, apparentPositionNext, &tv);
 
-	auto calculateDevMoveV = [this](const Eigen::Vector3d &apparentPosition_, const Eigen::Matrix3d &earthRot, Eigen::Vector2d &newCoordinate) {
+	auto calculateDevMoveV = [this](const Eigen::Vector3d &apparentPosition_, const Eigen::Matrix3d &earthRot,
+	                                Eigen::Vector2d &newCoordinate) {
 		calculateDeviceCoordinate(apparentPosition_, earthRot, newCoordinate);
 	};
 
@@ -1747,10 +1764,12 @@ void tlinsAstroEngine::manualCorrectionRequestHandling(const DIRECTION raDir, do
 
 	// Skladowe predkosci w ukladzie Astro
 	bool   Xdirection;
-	double Xdelata = deltaMinimumPosition(apparentPosition.getHourAngleRad(), apparentPositionNext.getHourAngleRad(), Xdirection);
+	double Xdelata =
+	    deltaMinimumPosition(apparentPosition.getHourAngleRad(), apparentPositionNext.getHourAngleRad(), Xdirection);
 
 	bool   Ydirection;
-	double Ydelata = deltaMinimumPosition(apparentPosition.getDeclinationRad(), apparentPositionNext.getDeclinationRad(), Ydirection);
+	double Ydelata = deltaMinimumPosition(apparentPosition.getDeclinationRad(),
+	                                      apparentPositionNext.getDeclinationRad(), Ydirection);
 
 	// Określenie wektora kierunku obrotu
 	Eigen::Vector2d rotVector{Eigen::Vector2d::Zero()};
@@ -1825,9 +1844,11 @@ void tlinsAstroEngine::iterationGuider()
 	tv.tv_sec += 1L;
 
 	Eigen::Vector3d apparentPositionNext;
-	auto apparentPositionNextRot = apparentPositionBase(currentTarget.target, apparentResultNext, apparentPositionNext, &tv);
+	auto            apparentPositionNextRot =
+	    apparentPositionBase(currentTarget.target, apparentResultNext, apparentPositionNext, &tv);
 
-	auto calculateDevMoveV = [this](const Eigen::Vector3d &apparentPositionXYZ, const Eigen::Matrix3d &erot, Eigen::Vector2d &newCoordinate) {
+	auto calculateDevMoveV = [this](const Eigen::Vector3d &apparentPositionXYZ, const Eigen::Matrix3d &erot,
+	                                Eigen::Vector2d &newCoordinate) {
 		// Wspolrzedna obiektu we wspolrzednych teleskopu
 		Eigen::Vector3d deviceCoordinate = attitudeOptimal * erot * apparentPositionXYZ;
 		attitude::tlinAttitudeUtilsClass::toSpeherical(deviceCoordinate, newCoordinate);
@@ -1861,7 +1882,9 @@ void tlinsAstroEngine::iterationGuider()
 
 	if (tracePosition) {
 		// Raportowanie pozycji
-		reportPositionInfo(std::string{"Guider"}, newDeviceCoordinate(0), newDeviceCoordinate(1), newDeviceCoordinateNext(0), newDeviceCoordinateNext(1), Xdelata, Ydelata, Xdirection, Ydirection);
+		reportPositionInfo(std::string{"Guider"}, newDeviceCoordinate(0), newDeviceCoordinate(1),
+		                   newDeviceCoordinateNext(0), newDeviceCoordinateNext(1), Xdelata, Ydelata, Xdirection,
+		                   Ydirection);
 	}
 }
 
@@ -2231,7 +2254,7 @@ void tlinsAstroEngine::apparentPosition(const tlinsAstroObject                  
 
 	// Pobranie aktualnych wartosci IERS
 	tlinsIERSInfo iers;
-	auto	     &ins = tlinsIERSInfoManager::getInstance();
+	auto         &ins = tlinsIERSInfoManager::getInstance();
 	if (!ins.get(tInfo.getYear(), tInfo.getMonth(), tInfo.getDay(), iers)) {
 		iers.setZero(tInfo.getYear(), tInfo.getMonth(), tInfo.getDay());
 	}
@@ -2271,9 +2294,10 @@ void tlinsAstroEngine::apparentPosition(const tlinsAstroObject                  
 	result.set(rac_, dcc_);
 }
 
-Eigen::Matrix3d tlinsAstroEngine::apparentPositionBase(const tlinsAstroObject                                       &aobject,
-              				                          	std::map<tlinsStarApparentPlaceType, tlinsAstroObjectSimple> &apparentResult,
-                            			            	Eigen::Vector3d &result, struct timeval *tv) const
+Eigen::Matrix3d
+tlinsAstroEngine::apparentPositionBase(const tlinsAstroObject                                       &aobject,
+                                       std::map<tlinsStarApparentPlaceType, tlinsAstroObjectSimple> &apparentResult,
+                                       Eigen::Vector3d &result, struct timeval *tv) const
 {
 	// Aktualizacja czasu
 	auto &tInfo = tlinsTimeInfo::getInstance();
@@ -2285,7 +2309,7 @@ Eigen::Matrix3d tlinsAstroEngine::apparentPositionBase(const tlinsAstroObject   
 
 	// Pobranie aktualnych wartosci IERS
 	tlinsIERSInfo iers;
-	auto	     &ins = tlinsIERSInfoManager::getInstance();
+	auto         &ins = tlinsIERSInfoManager::getInstance();
 	if (!ins.get(tInfo.getYear(), tInfo.getMonth(), tInfo.getDay(), iers)) {
 		iers.setZero(tInfo.getYear(), tInfo.getMonth(), tInfo.getDay());
 	}
@@ -2735,7 +2759,7 @@ void tlinsAstroEngine::stopDevice()
 			// - Predkosc
 			auto vx_ = vX * tlinsMath::PI_1_DIV_2 * xDResolution;
 			auto vy_ = vX * tlinsMath::PI_1_DIV_2 * xDResolution;
-			auto V = static_cast<long>(::round(::sqrt(vx_ * vx_ + vy_ * vy_)));
+			auto V   = static_cast<long>(::round(::sqrt(vx_ * vx_ + vy_ * vy_)));
 			if (V > vXSteps) {
 				V = vXSteps;
 			}
@@ -2880,7 +2904,8 @@ grpc::Status tlinsRpcAstroEngine::getState(grpc::ServerContext *context, const t
 		engine.readState(attitude, target, isTarget, xOut, xOutRaw, yOut, yOutRaw, mulMode, state, mode);
 	}
 	catch (tlinsAstroException &exc) {
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(), exc.getErrorMessage());
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(),
+		              exc.getErrorMessage());
 		return grpc::Status::OK;
 	}
 
@@ -2989,7 +3014,8 @@ grpc::Status tlinsRpcAstroEngine::getState(grpc::ServerContext *context, const t
 		curr_target->mutable_aceleration()->set_value(target.aceleration);
 	}
 
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 	return grpc::Status::OK;
 }
 
@@ -3127,7 +3153,8 @@ grpc::Status tlinsRpcAstroEngine::getCalibrationState(grpc::ServerContext *conte
 	response->mutable_istrackingenabled()->set_value(engine.isTrackingActive());
 
 	// Sukces
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 
 	return grpc::Status::OK;
 }
@@ -3163,7 +3190,8 @@ grpc::Status tlinsRpcAstroEngine::getTarget(grpc::ServerContext *context, const 
 		engine.readCurrentTarget(target, isTarget);
 	}
 	catch (tlinsAstroException &exc) {
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(), exc.getErrorMessage());
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(),
+		              exc.getErrorMessage());
 		return grpc::Status::OK;
 	}
 
@@ -3208,7 +3236,8 @@ grpc::Status tlinsRpcAstroEngine::getTarget(grpc::ServerContext *context, const 
 		curr_target->mutable_aceleration()->set_value(target.aceleration);
 	}
 
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 	return grpc::Status::OK;
 }
 
@@ -3679,7 +3708,8 @@ grpc::Status tlinsRpcAstroEngine::setTrackingState(grpc::ServerContext *context,
 	if (engine.trackingStatusSet(status)) {
 		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
 	} else {
-		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR, tlinsAstroException::ASTRO_ERROR_SET_TRACKING_STATUS, "Error enable tracking.");
+		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR,
+		              tlinsAstroException::ASTRO_ERROR_SET_TRACKING_STATUS, "Error enable tracking.");
 	}
 	return grpc::Status::OK;
 }
@@ -3695,7 +3725,8 @@ grpc::Status tlinsRpcAstroEngine::getTrackingState(grpc::ServerContext *context,
 	response->mutable_ra()->set_value(rra);
 	response->mutable_dec()->set_value(rdec);
 	response->mutable_trackingstatus()->set_value(rstatus);
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 	return grpc::Status::OK;
 }
 
@@ -3722,7 +3753,8 @@ grpc::Status tlinsRpcAstroEngine::guideNorth(grpc::ServerContext *context, const
 		engine.guiderRequestHandling(::abs(request->value()), tlinsAstroEngine::AXIS::DEC,
 		                             tlinsAstroEngine::DIRECTION::UP);
 		response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_SET);
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+		              "SUCCESS");
 	}
 	catch (tlinsException &exc) {
 		switch (exc.getErrorID()) {
@@ -3737,7 +3769,8 @@ grpc::Status tlinsRpcAstroEngine::guideNorth(grpc::ServerContext *context, const
 			response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_ERROR);
 			break;
 		}
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(), exc.getErrorMessage());
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(),
+		              exc.getErrorMessage());
 	}
 	return grpc::Status::OK;
 }
@@ -3749,7 +3782,8 @@ grpc::Status tlinsRpcAstroEngine::guideSounth(grpc::ServerContext *context, cons
 		engine.guiderRequestHandling(::abs(request->value()), tlinsAstroEngine::AXIS::DEC,
 		                             tlinsAstroEngine::DIRECTION::DOWN);
 		response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_SET);
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+		              "SUCCESS");
 	}
 	catch (tlinsException &exc) {
 		switch (exc.getErrorID()) {
@@ -3764,7 +3798,8 @@ grpc::Status tlinsRpcAstroEngine::guideSounth(grpc::ServerContext *context, cons
 			response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_ERROR);
 			break;
 		}
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(), exc.getErrorMessage());
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR, exc.getErrorID(),
+		              exc.getErrorMessage());
 	}
 	return grpc::Status::OK;
 }
@@ -3776,7 +3811,8 @@ grpc::Status tlinsRpcAstroEngine::guideEst(grpc::ServerContext *context, const t
 		engine.guiderRequestHandling(::abs(request->value()), tlinsAstroEngine::AXIS::RA,
 		                             tlinsAstroEngine::DIRECTION::RIGHT);
 		response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_SET);
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+		              "SUCCESS");
 	}
 	catch (tlinsException &exc) {
 		switch (exc.getErrorID()) {
@@ -3805,7 +3841,8 @@ grpc::Status tlinsRpcAstroEngine::guideWest(grpc::ServerContext *context, const 
 		engine.guiderRequestHandling(::abs(request->value()), tlinsAstroEngine::AXIS::RA,
 		                             tlinsAstroEngine::DIRECTION::LEFT);
 		response->set_guiderstatus(tlins::tlinsGuiderStatus_::_GUIDER_SET);
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+		              "SUCCESS");
 	}
 	catch (tlinsException &exc) {
 		switch (exc.getErrorID()) {
@@ -3842,12 +3879,14 @@ grpc::Status tlinsRpcAstroEngine::manualCorrection(grpc::ServerContext          
 		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
 	}
 	catch (...) {
-		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR, tlinsException::ERROR, "ERROR set manual correction");
+		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR, tlinsException::ERROR,
+		              "ERROR set manual correction");
 	}
 	return grpc::Status::OK;
 }
 
-grpc::Status tlinsRpcAstroEngine::manualCorrectionReset(grpc::ServerContext *context, const tlins::Void *request, tlins::tlinsRpcStatus *response)
+grpc::Status tlinsRpcAstroEngine::manualCorrectionReset(grpc::ServerContext *context, const tlins::Void *request,
+                                                        tlins::tlinsRpcStatus *response)
 {
 	engine.manualCorrectionRequestHandlingReset();
 	__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
@@ -3864,9 +3903,11 @@ grpc::Status tlinsRpcAstroEngine::manualCorrectionGet(grpc::ServerContext *conte
 	engine.manualCorrectionStatus(raDir, raCorrection, decDir, decCorrection);
 
 	response->mutable_ra()->set_value(raDir == tlinsAstroEngine::DIRECTION::LEFT ? -1.0 * raCorrection : raCorrection);
-	response->mutable_dec()->set_value(decDir == tlinsAstroEngine::DIRECTION::UP ? -1.0 * decCorrection : decCorrection);
+	response->mutable_dec()->set_value(decDir == tlinsAstroEngine::DIRECTION::UP ? -1.0 * decCorrection
+	                                                                             : decCorrection);
 
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 	return grpc::Status::OK;
 }
 
@@ -3884,7 +3925,8 @@ grpc::Status tlinsRpcAstroEngine::guiderRatioSet(grpc::ServerContext            
 	return grpc::Status::OK;
 }
 
-grpc::Status tlinsRpcAstroEngine::guiderRatioGet(grpc::ServerContext *context, const tlins::Void *request, tlins::tlinsGuiderConfigStatus *response)
+grpc::Status tlinsRpcAstroEngine::guiderRatioGet(grpc::ServerContext *context, const tlins::Void *request,
+                                                 tlins::tlinsGuiderConfigStatus *response)
 {
 	double ra;
 	double dec;
@@ -3894,7 +3936,8 @@ grpc::Status tlinsRpcAstroEngine::guiderRatioGet(grpc::ServerContext *context, c
 	response->mutable_raratio()->set_value(ra);
 	response->mutable_decratio()->set_value(dec);
 	response->mutable_userafordec()->set_value(useRaForDec);
-	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS, "SUCCESS");
+	__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_SUCCESS, tlinsException::SUCCESS,
+	              "SUCCESS");
 	return grpc::Status::OK;
 }
 

@@ -50,6 +50,8 @@ struct struct0_T {
 		dT            = v.dT;
 		mk            = v.mk;
 		Rho           = v.Rho;
+
+		return *this;
 	};
 
 	struct0_T(const struct0_T &v)

@@ -89,10 +89,21 @@
 				<parameter name="position-limit-r2">10016</parameter>
 				<parameter name="position-limit-dx">10016</parameter>
 				<parameter name="position-limit-dz">10016</parameter>
-				<parameter name="position-limit-angle-X">123.5</parameter>
-				<parameter name="position-limit-angle-Y">123.6</parameter>
+				<parameter name="position-limit-angle-X">0.0</parameter>
+				<parameter name="position-limit-angle-Y">0.0</parameter>
 				<parameter name="position-limit-angle-Z">0.0</parameter>
 				<parameter name="limit-frequency">100</parameter>
+
+				<parameter name="position-limit-legs">3</parameter>
+				<parameter name="position-limit-leg-radius">30.0</parameter>
+				<parameter name="position-limit-legs-offset-x">0.0</parameter>
+				<parameter name="position-limit-legs-offset-y">0.0</parameter>
+				<parameter name="position-limit-legs-offset-z">120.0</parameter>
+				<parameter name="position-limit-legs-start_angle">0.0</parameter>
+				<parameter name="position-limit-legs-angle">60.0</parameter>
+				<parameter name="position-limit-base-radius">60.0</parameter>
+				<parameter name="position-limit-base-length">500.0</parameter>
+				<parameter name="position-limit-tube-radius">110.0</parameter>
 
 				<parameter name="STOP">10016</parameter>
 				<parameter name="LIN_V">0</parameter>

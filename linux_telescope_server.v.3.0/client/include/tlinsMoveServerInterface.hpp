@@ -9,10 +9,12 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <Eigen/Eigenvalues>
 #include <tlinsBacktrace.hpp>
 #include <tlinsInterfaceException.hpp>
 #include <tlins_utils.hpp>
 #include <vector>
+#include <utility>
 
 //
 // ----------------------------------------------------
@@ -145,6 +147,9 @@ class tlinsMoveServerInterfaceLimitsConfirmation {
 // ----------------------------------------------------
 //
 class tlinsMoveServerInterface {
+  public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   private:
 	// tlinsSynchronusChannel &synchronusChannel;
 	std::unique_ptr<tlins::tlinsRpcService::Stub> connectionStub;
@@ -469,7 +474,23 @@ class tlinsMoveServerInterface {
 	//
 	// Zestaw API do zarzadzania limitami pozycji
 	//
-	void registerLimitAlarm(const std::string &deviceName, std::shared_ptr<tlinsMoveServerLimitsInterfaceCallBack> &cb);
+	void colistionsRegisterAlarm(const std::string &deviceName, std::shared_ptr<tlinsMoveServerLimitsInterfaceCallBack> &cb);
+
+	//
+	// Metody zwiazane z detekcja kolizji
+	//
+	// Ustawienie i pobranie wartosci limitu
+	void colistionsDetectionSetLimits(
+		const std::string &deviceName,
+		const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> &limits);
+	std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> colistionsDetectionGetLimits(const std::string &deviceName);
+
+	// Testowanie limitu
+	bool colistionsDetectionTest(const std::string &deviceName, const Eigen::Vector3d &pos);
+
+	// Wlaczenie wylaczenie limitow
+	void colistionsDetectionEnable(const std::string &deviceName);
+	void colistionsDetectionDisable(const std::string &deviceName);
 
 	//
 	// Konstruktor destruktor klasy

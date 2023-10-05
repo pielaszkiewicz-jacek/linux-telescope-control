@@ -83,6 +83,7 @@ do
 done
 
 echo -e ""
+
 cp -rv pkg/cfg ${DEST_DIR} | while read line
 do
     echo -e "\t${line}"

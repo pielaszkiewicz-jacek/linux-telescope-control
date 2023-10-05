@@ -10,6 +10,9 @@
 #include <poll.h>
 #include <stdint.h>
 
+#include <Eigen/Eigenvalues>
+#include <Eigen/Geometry>
+
 #include <atomic>
 #include <functional>
 #include <map>
@@ -191,6 +194,14 @@ class tlinsSerialMainDevice {
 	double                                      limitsDZ;
 	long                                        limitsFrequency;
 	std::vector<std::pair<std::string, double>> limitsAxisAngles;
+	int                                         limitsLegs;
+	double                                      limitsLegRadius;
+	Eigen::Vector3d                             limitsLegsZOffset;
+	double                                      limitsLegsSartAngle;
+	double                                      limitsLegsAngle;
+	double                                      limitsBaseRadius;
+	double                                      limitsBaseLength;
+	double                                      limitsTubeRadius;
 
   public:
 	double                                      getLimitsH() const;
@@ -201,6 +212,15 @@ class tlinsSerialMainDevice {
 	long                                        getLimitsFrequency() const;
 	std::vector<std::pair<std::string, double>> getLimitsAxisAngles() const;
 
+	int             getLimitsLegs() const;
+	double          getLimitsLegRadius() const;
+	Eigen::Vector3d getLimitsLegsZOffset() const;
+	double          getLimitsLegsSartAngle() const;
+	double          getLimitsLegsAngle() const;
+	double          getLimitsBaseRadius() const;
+	double          getLimitsBaseLength() const;
+	double          getLimitsTubeRadius() const;
+
 	void setLimitsH(const double v);
 	void setLimitsR1(const double v);
 	void setLimitsR2(const double v);
@@ -208,6 +228,15 @@ class tlinsSerialMainDevice {
 	void setLimitsDZ(const double v);
 	void setLimitsFrequency(const long v);
 	void setLimitsAxisAngles(const std::string &a, const double v);
+
+	void setLimitsLegs(const int v);
+	void setLimitsLegRadius(const double v);
+	void setLimitsLegsZOffset(const Eigen::Vector3d &v);
+	void setLimitsLegsSartAngle(const double v);
+	void setLimitsLegsAngle(const double v);
+	void setLimitsBaseRadius(const double v);
+	void setLimitsBaseLength(const double v);
+	void setLimitsTubeRadius(const double v);
 
   private:
 	std::map<std::string, std::shared_ptr<tlinsSerialDevice>> devices;
@@ -298,6 +327,9 @@ class tlinsSerialMainDevice {
 
 	void triggerAbsPos();
 	void triggerRelPos();
+
+	void triggerAbsPos(const int16_t val);
+	void triggerRelPos(const int16_t val);
 
 	void setIntDataType();
 	void setRealDataType();
@@ -517,6 +549,7 @@ class tlinsSerialDevice {
 	// Parametery rampy dla trybu predkosci i standardowego przemieszczenia
 	// ++
 	void setRampParameters(const long A, const long D, const long V, const bool force = false);
+	void setRampParametersSpeed(const long A, const long D);
 
 	// Parametery rampy dla interpolacji liniowej
 	// ++

@@ -295,9 +295,9 @@ void tlinsWApplayAstroConfigurationWidget::updateSuccessCount()
     successCount++;
     if ((successCount + failedCount) >= totalCount) {
         if (totalCount == successCount)
-            emit applayingStatusSlot("Successfully applied configuration.");
+            emit applayingStatus("Successfully applied configuration.");
         else
-            emit applayingStatusSlot("Configuration applied with errors - check log.");
+            emit applayingStatus("Configuration applied with errors - check log.");
     }
 }
 
@@ -305,7 +305,7 @@ void tlinsWApplayAstroConfigurationWidget::updateFailedCount()
 {
     failedCount++;
     if ((successCount + failedCount) >= totalCount) {
-        emit this->applayingStatusSlot("Configuration applied with errors - check log.");
+        emit this->applayingStatus("Configuration applied with errors - check log.");
     }
 }
 
@@ -340,7 +340,7 @@ void tlinsWApplayAstroConfigurationWidget::accepted()
         }
 
         if (totalCount == 0) {
-            emit this->applayingStatusSlot("No configuration selected.");
+            emit this->applayingStatus("No configuration selected.");
             return;
         }
 
@@ -361,6 +361,6 @@ void tlinsWApplayAstroConfigurationWidget::accepted()
         }
     } catch (tlinsException& exc) {
         PRINT_LOG(QString { "Error applying astro configuration." });
-        emit this->applayingStatusSlot(exc.getErrorMessage());
+        emit this->applayingStatus(exc.getErrorMessage());
     }
 }

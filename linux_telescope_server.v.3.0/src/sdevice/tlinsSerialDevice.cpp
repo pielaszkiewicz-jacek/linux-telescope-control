@@ -228,6 +228,18 @@ void tlinsSerialMainDevice::triggerAbsPos()
 	set_force_dev_AXIS_POS_ABS_TRIG(value);
 }
 
+void tlinsSerialMainDevice::triggerAbsPos(const int16_t val)
+{
+	int16_t value = val;
+	set_force_dev_AXIS_POS_ABS_TRIG(value);
+}
+
+void tlinsSerialMainDevice::triggerRelPos(const int16_t val)
+{
+	int16_t value = val;
+	set_force_dev_AXIS_VEL_REL_TRIG(value);
+}
+
 void tlinsSerialMainDevice::triggerRelPos()
 {
 	int16_t value = (1 << 0) | (1 << 1);
@@ -643,6 +655,106 @@ void tlinsSerialMainDevice::setLimitsAxisAngles(const std::string &a, const doub
 	limitsAxisAngles.emplace_back(std::pair<std::string, double>{a, v});
 }
 
+
+// ----------
+int tlinsSerialMainDevice::getLimitsLegs() const
+{
+	// Getter
+	return limitsLegs;
+}
+
+double tlinsSerialMainDevice::getLimitsLegRadius() const
+{
+	// Getter
+	return limitsLegRadius;
+}
+
+Eigen::Vector3d tlinsSerialMainDevice::getLimitsLegsZOffset() const
+{
+	// Getter
+	return limitsLegsZOffset;
+}
+
+double tlinsSerialMainDevice::getLimitsLegsSartAngle() const
+{
+	// Getter
+	return limitsLegsSartAngle;
+}
+
+double tlinsSerialMainDevice::getLimitsLegsAngle() const
+{
+	// Getter
+	return limitsLegsAngle;
+}
+double tlinsSerialMainDevice::getLimitsBaseRadius() const
+{
+	// Getter
+	return limitsBaseRadius;
+}
+
+double tlinsSerialMainDevice::getLimitsBaseLength() const
+{
+	// Getter
+	return limitsBaseLength;
+}
+
+double tlinsSerialMainDevice::getLimitsTubeRadius() const
+{
+	// Getter
+	return limitsTubeRadius;
+}
+
+void tlinsSerialMainDevice::setLimitsLegs(const int v)
+{
+	// Setter
+	limitsLegs = v;
+}
+
+void tlinsSerialMainDevice::setLimitsLegRadius(const double v)
+{
+	// Setter
+	limitsLegRadius = v;
+}
+
+void tlinsSerialMainDevice::setLimitsLegsZOffset(const Eigen::Vector3d &v)
+{
+	// Setter
+	limitsLegsZOffset = v;
+}
+
+void tlinsSerialMainDevice::setLimitsLegsSartAngle(const double v)
+{
+	// Setter
+	limitsLegsSartAngle = v;
+}
+
+void tlinsSerialMainDevice::setLimitsLegsAngle(const double v)
+{
+	// Setter
+	limitsLegsAngle = v;
+}
+
+void tlinsSerialMainDevice::setLimitsBaseRadius(const double v)
+{
+	// Setter
+	limitsBaseRadius = v;
+}
+
+void tlinsSerialMainDevice::setLimitsBaseLength(const double v)
+{
+	// Setter
+	limitsBaseLength = v;
+}
+
+void tlinsSerialMainDevice::setLimitsTubeRadius(const double v)
+{
+	// Setter
+	limitsTubeRadius = v;
+}
+
+
+// ----------
+
 void tlinsSerialMainDevice::setDebugProtocol(const bool v)
 {
 	std::lock_guard<std::mutex> lock(mtx);
@@ -717,6 +829,17 @@ void tlinsSerialDevice::setRampParameters(const long A, const long D, const long
 	curr_RAMP_V_MAX = V;
 	set_force_dev_RAMP_V_MAX(curr_RAMP_V_MAX);
 }
+
+
+void tlinsSerialDevice::setRampParametersSpeed(const long A, const long D)
+{
+	curr_RAMP_A = A;
+	set_force_dev_RAMP_A(curr_RAMP_A);
+
+	curr_RAMP_D = D;
+	set_force_dev_RAMP_D(curr_RAMP_D);
+}
+
 
 void tlinsSerialDevice::setLinRampParameters(const long A, const long D, const long V_MAX, const bool force)
 {
@@ -947,7 +1070,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 {
 	std::lock_guard<std::mutex> lock(mtx);
 
+	TLINS_LOG_DEBUG("ADD = " + std::to_string(address) + "; VALUE = " + std::to_string(value));
+
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -955,8 +1081,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 	while (true) {
 		int rc = ::modbus_write_register(modbusCtx, address, static_cast<uint16_t>(value));
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			count++;
 			if (count >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(
 				    tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
@@ -970,8 +1098,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 {
 	std::lock_guard<std::mutex> lock(mtx);
 
+	TLINS_LOG_DEBUG("ADD = " + std::to_string(address) + "; VALUE = " + std::to_string(value_));
 
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -981,8 +1111,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 	while (true) {
 		int rc = ::modbus_write_registers(modbusCtx, address, 2, reinterpret_cast<uint16_t *>(&value));
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			count++;
 			if (count >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(
 				    tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
@@ -997,7 +1129,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 {
 	std::lock_guard<std::mutex> lock(mtx);
 
+	TLINS_LOG_DEBUG("ADD = " + std::to_string(address) + "; VALUE = " + std::to_string(value[0]));
+
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -1013,8 +1148,10 @@ void tlinsSerialUtils::writreRegister(std::mutex &mtx, modbus_t *modbusCtx, cons
 		int rc =
 		    ::modbus_write_registers(modbusCtx, address, 2 * value.size(), reinterpret_cast<uint16_t *>(values_.get()));
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			count++;
 			if (count >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(
 				    tlinsSerialDeviceException("Error write into register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
@@ -1030,6 +1167,7 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	uint16_t                    value;
 
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -1037,8 +1175,10 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	while (true) {
 		int rc = ::modbus_read_registers(modbusCtx, address, 1, static_cast<uint16_t *>(&value));
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			count++;
 			if (count >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
 		} else {
@@ -1054,6 +1194,7 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	uint32_t                    value;
 
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -1061,8 +1202,10 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	while (true) {
 		int rc = ::modbus_read_registers(modbusCtx, address, 2, reinterpret_cast<uint16_t *>(&value));
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			count++;
 			if (count >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
 		} else {
@@ -1078,6 +1221,7 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	std::lock_guard<std::mutex> lock(mtx);
 
 	if (modbusCtx == nullptr) {
+		TLINS_LOG_DEBUG("ERROR");
 		__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 	}
 
@@ -1087,8 +1231,10 @@ void tlinsSerialUtils::readRegister(std::mutex &mtx, modbus_t *modbusCtx, const 
 	while (true) {
 		int rc = ::modbus_read_registers(modbusCtx, address, 2 * count, values.get());
 		if (rc < 0) {
+			TLINS_LOG_DEBUG("ERROR");
 			tcount++;
 			if (tcount >= maxNumberModbusRetrys) {
+				TLINS_LOG_DEBUG("ERROR");
 				__THROW__(tlinsSerialDeviceException("Error read register", tlinsSerialDeviceException::ERROR_MODBUSS));
 			}
 		} else {
@@ -1293,6 +1439,19 @@ void tlinsSerialDeviceManager::createDevices()
 		ptr->setLimitsAxisAngles("Z", zv);
 		double freq = getIntValue("limit-frequency", mainDevPara.getParameters());
 		ptr->setLimitsFrequency(freq);
+
+		// Parametery montarzu zwiazane z limitami
+		ptr->setLimitsLegs(getIntValue("position-limit-legs", mainDevPara.getParameters()));
+		ptr->setLimitsLegRadius(getDoubleValue("position-limit-leg-radius", mainDevPara.getParameters()));
+		ptr->setLimitsLegsZOffset(
+		    Eigen::Vector3d{getDoubleValue("position-limit-legs-offset-x", mainDevPara.getParameters()),
+		                    getDoubleValue("position-limit-legs-offset-y", mainDevPara.getParameters()),
+		                    getDoubleValue("position-limit-legs-offset-z", mainDevPara.getParameters())});
+		ptr->setLimitsLegsSartAngle(getDoubleValue("position-limit-legs-start_angle", mainDevPara.getParameters()));
+		ptr->setLimitsLegsAngle(getDoubleValue("position-limit-legs-angle", mainDevPara.getParameters()));
+		ptr->setLimitsBaseRadius(getDoubleValue("position-limit-base-radius", mainDevPara.getParameters()));
+		ptr->setLimitsBaseLength(getDoubleValue("position-limit-base-length", mainDevPara.getParameters()));
+		ptr->setLimitsTubeRadius(getDoubleValue("position-limit-tube-radius", mainDevPara.getParameters()));
 
 		// Przejscie po urzadzeniach
 		for (auto i = mainDevPara.getDevices().begin(); i != mainDevPara.getDevices().end(); i++) {

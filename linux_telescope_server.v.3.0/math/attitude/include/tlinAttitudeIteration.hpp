@@ -94,14 +94,14 @@ class tlinAttitudeIterations {
 		                const std::unique_ptr<tlinsAttitudeProcessor> &v2);
 	};
 
-	std::set<std::unique_ptr<tlinsAttitudeProcessor>, ProcessorCompartatorLess> attitudeProcessors;
+	std::map<std::string, std::unique_ptr<tlinsAttitudeProcessor>> attitudeProcessors;
 
   public:
-	void registerAttitudeProcessor(std::unique_ptr<tlinsAttitudeProcessor> &ptr)
-	{
-		std::unique_lock<std::mutex> lock{mtx};
-		attitudeProcessors.insert(std::move(ptr));
-	};
+	void registerAttitudeProcessor(std::unique_ptr<tlinsAttitudeProcessor> &ptr);
+	// {
+	// 	std::unique_lock<std::mutex> lock{mtx};
+	// 	attitudeProcessors[ptr->name()] = std::move(ptr);
+	// };
 
 	void add2(const std::shared_ptr<tlinAttitudeIteration> &iter);
 

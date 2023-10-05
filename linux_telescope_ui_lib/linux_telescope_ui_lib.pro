@@ -9,7 +9,7 @@ QT += network xml widgets sql core
 TARGET = linux_telescope_ui_lib
 TEMPLATE = lib
 CONFIG += staticlib
-CONFIG += c++14
+CONFIG += c++17
 
 #	../current/generated/astro.grpc.pb.cc		\
 #	../current/generated/astro.pb.cc			\
@@ -264,7 +264,7 @@ SOURCES += linux_telescope_ui_lib.cpp			\
 	tlinskeyboard.cpp
 
 
-INCLUDEPATH += $$PWD/../external/release/include \
+INCLUDEPATH += $$PWD/../external/release.x86/include \
 	../current/math/astro/include/	\
     ../current/client/include/					\
     ../current/include/parameters/				\
@@ -272,6 +272,7 @@ INCLUDEPATH += $$PWD/../external/release/include \
     ../current/include/sdevice/					\
     ../current/generated/						\
 	../current/system_service/include/          \
+	../external/eigen-3.4.0                     \
     sofa/include/
 
 HEADERS += linux_telescope_ui_lib.h				\

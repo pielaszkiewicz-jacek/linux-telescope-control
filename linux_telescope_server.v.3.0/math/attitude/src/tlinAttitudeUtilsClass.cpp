@@ -7,6 +7,7 @@
 #include <cmath>
 #include <limits>
 #include <math.h>
+#include <sofa.h>
 #include <stdio.h>
 #include <unsupported/Eigen/MatrixFunctions>
 
@@ -17,6 +18,21 @@ double tlinAttitudeUtilsClass::epsylon      = DBL_EPSILON;
 double tlinAttitudeUtilsClass::epsylonError = 0.000001;
 
 double tlinAttitudeUtilsClass::pi = M_PI;
+
+std::pair<double, bool> tlinAttitudeUtilsClass::deltaMinimumPosition(const double currPos, const double newPos)
+{
+	auto e = newPos;
+
+	e += tlinsMath::PI_2 - currPos;
+	tlinAttitudeUtilsClass::normAngles(e);
+
+	auto direction = false;
+	if (e > (tlinsMath::PI_2 / 2.0)) {
+		e         = tlinsMath::PI_2 - e;
+		direction = true;
+	}
+	return std::pair<double, bool>{e, direction};
+}
 
 void tlinAttitudeUtilsClass::estimnateRotationSpeed(const Eigen::Vector3d &v1_, const Eigen::Vector3d &v2_,
                                                     const double dt, Eigen::Vector3d &output)
@@ -82,34 +98,41 @@ void tlinAttitudeUtilsClass::estimnateRotationSpeed(const Eigen::Vector3d &v1_, 
 	}
 }
 
-void tlinAttitudeUtilsClass::toCartesian(const double alfa, const double beta, Eigen::Vector3d &axis)
+void tlinAttitudeUtilsClass::toCartesian(const double alfa, const double beta, Eigen::Vector3d &axis, const double r)
 {
-	axis(0) = ::cos(beta) * ::cos(alfa);
-	axis(1) = ::cos(beta) * ::sin(alfa);
-	axis(2) = ::sin(beta);
+	axis(0) = r * ::cos(beta) * ::cos(alfa);
+	axis(1) = r * ::cos(beta) * ::sin(alfa);
+	axis(2) = r * ::sin(beta);
 }
 
 
-Eigen::Vector3d tlinAttitudeUtilsClass::toCartesianBase(const double alfa, const double beta)
+Eigen::Vector3d tlinAttitudeUtilsClass::toCartesianBase(const double alfa, const double beta, const double r)
 {
 	Eigen::Vector3d axis;
-	axis(0) = ::cos(beta) * ::cos(alfa);
-	axis(1) = ::cos(beta) * ::sin(alfa);
-	axis(2) = ::sin(beta);
+	axis(0) = r * ::cos(beta) * ::cos(alfa);
+	axis(1) = r * ::cos(beta) * ::sin(alfa);
+	axis(2) = r * ::sin(beta);
 	return axis;
 }
 
-void tlinAttitudeUtilsClass::toCartesian(const Eigen::Vector2d &in, Eigen::Vector3d &axis)
+void tlinAttitudeUtilsClass::toCartesian(const Eigen::Vector2d &in, Eigen::Vector3d &axis, const double r)
 {
-	axis(0) = ::cos(in(1)) * ::cos(in(0));
-	axis(1) = ::cos(in(1)) * ::sin(in(0));
-	axis(2) = ::sin(in(1));
+	axis(0) = r * ::cos(in(1)) * ::cos(in(0));
+	axis(1) = r * ::cos(in(1)) * ::sin(in(0));
+	axis(2) = r * ::sin(in(1));
 }
 
 void tlinAttitudeUtilsClass::toSpeherical(const Eigen::Vector3d &in, Eigen::Vector2d &out)
 {
 	out(0) = ::atan2(in(1), in(0));
 	auto r = ::sqrt((in(0) * in(0)) + (in(1) * in(1)) + (in(2) * in(2)));
+	out(1) = ::asin(in(2) / r);
+}
+
+void tlinAttitudeUtilsClass::toSpeherical(const Eigen::Vector3d &in, Eigen::Vector2d &out, double &r)
+{
+	out(0) = ::atan2(in(1), in(0));
+	r      = ::sqrt((in(0) * in(0)) + (in(1) * in(1)) + (in(2) * in(2)));
 	out(1) = ::asin(in(2) / r);
 }
 
@@ -169,9 +192,8 @@ void tlinAttitudeUtilsClass::buildXYZRotaionMatrix(const double a, const double 
 	Rot_matrix(2, 0) = -sv;
 	Rot_matrix(2, 1) = su * cv;
 	Rot_matrix(2, 2) = cu * cv;
+	out              = Rot_matrix;
 	// out              = Rot_matrix.transpose();
-	out = Rot_matrix;
-	// PRINT_M(out,  "OUT  ", "%f");
 }
 
 bool tlinAttitudeUtilsClass::testEpsylon(const double val)
@@ -970,12 +992,11 @@ void tlinAttitudeUtilsClass::init2(Eigen::Vector2d &m)
 double tlinAttitudeUtilsClass::vectorsAngle(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2)
 {
 	double dot = v1.dot(v2);
-	double l1 = v1.norm();
-	double l2 = v2.norm();
+	double l1  = v1.norm();
+	double l2  = v2.norm();
 
-	if(	dot <= std::numeric_limits<double>::epsilon() ||
-		l1  <= std::numeric_limits<double>::epsilon() ||
-		l2  <= std::numeric_limits<double>::epsilon()) {
+	if (dot <= std::numeric_limits<double>::epsilon() || l1 <= std::numeric_limits<double>::epsilon() ||
+	    l2 <= std::numeric_limits<double>::epsilon()) {
 		return tlinsMath::PI / 2.0;
 	}
 	return ::acos(dot / (l1 * l2));

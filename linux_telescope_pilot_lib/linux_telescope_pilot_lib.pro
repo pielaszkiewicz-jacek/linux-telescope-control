@@ -5,7 +5,7 @@ QT += core
 TEMPLATE = lib
 CONFIG += staticlib
 
-CONFIG += c++14
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -67,7 +67,7 @@ HEADERS += \
 	tlinspluginradcdelta.h \
 	tlinspluginradcspeeddelta.h
 
-INCLUDEPATH += $$PWD/../external/release/include \
+INCLUDEPATH += $$PWD/../external/release.x86/include \
 			   $$PWD/../current/math/astro/include/ \
 			   $$PWD/../current/client/include/ \
 			   $$PWD/../current/include/parameters/ \
@@ -79,6 +79,7 @@ INCLUDEPATH += $$PWD/../external/release/include \
 			   $$PWD/../build-linux_telescope_ui_lib-Debug \
 			   $$PWD/../linux_telescope_ui_lib \
 			   $$PWD/../linux_telescope_ui_lib/sofa/include \
+			   $$PWD/../external/eigen-3.4.0 \
 			   /usr/local/include \
 			   $$PWD/../current/x86
 

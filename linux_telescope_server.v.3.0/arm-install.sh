@@ -50,11 +50,36 @@ echo -e "\t-----------------------------------------------------"
 #
 # Executables
 #
+rm -rf ${DEST_DIR}/lib/*
+for file in ../external/release.arm/lib/*
+do
+	echo -e "\tFile: ${file}"
+	cp -r ${file} ${DEST_DIR}/lib/. > /dev/null 2> /dev/null
+done
+
+for file in ../external/release.arm/lib64/*
+do
+	echo -e "\tFile: ${file}"
+	cp -r ${file} ${DEST_DIR}/lib/. > /dev/null 2> /dev/null
+done
+
+
+for file in ../external/release.arm/lib64/*
+do
+	echo -e "\tFile: ${file}"
+	cp -r ${file} ${DEST_DIR}/lib/. > /dev/null 2> /dev/null
+done
+rm -f ${DEST_DIR}/lib/*.a
+rm -rf ${DEST_DIR}/lib/pkgconfig
+rm -rf ${DEST_DIR}/lib/cmake
+
+
 for file in tlins tlinsAstro tlins_system_service tlins_tests
 do
 	echo -e "\tFile: ${file}"
 	cp ${file} ${DEST_DIR}/bin/. > /dev/null 2> /dev/null
 done
+rm -f ${DEST_DIR}/bin/tlins_tests
 
 echo -e ""
 

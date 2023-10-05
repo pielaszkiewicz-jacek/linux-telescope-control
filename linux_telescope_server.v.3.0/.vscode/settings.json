@@ -246,7 +246,8 @@
 		"random": "cpp",
 		"source_location": "cpp",
 		"ranges": "cpp",
-		"stop_token": "cpp"
+		"stop_token": "cpp",
+		"core": "cpp"
 	},
 	"cmake.configureOnOpen": false,
 	"editor.tabCompletion": "on",

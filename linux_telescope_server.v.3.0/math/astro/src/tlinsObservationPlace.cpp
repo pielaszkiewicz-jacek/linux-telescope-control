@@ -1,8 +1,10 @@
 #include <tlinsLogger.hpp>
 #include <tlinsObservationPlace.hpp>
 
+#include <array>
 #include <iostream>
 #include <sofa.h>
+
 
 void tlinsObservationPlace::setLatitude(const tlinsCoordinate &v)
 {

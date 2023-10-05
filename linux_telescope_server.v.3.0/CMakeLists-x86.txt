@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.0)
 #
 
 #/home/jacek/development/project/external/release/lib64
-set(PROTOBUF					"${PRD_ROOT}/project/external/release/")
+set(PROTOBUF					"${PRD_ROOT}/project/external/release.x86/")
 set(EIGEN3						"${PRD_ROOT}/libs/eigen3")
 set(PROJECT_DIR					"${PRD_ROOT}/project/current")
 
@@ -26,8 +26,8 @@ set(CMAKE_CXX_COMPILER			g++)
 
 set(TINXML						"${PRD_ROOT}/../libs/libtinyxml")
 
-set(PROTOC_EXE					"${PRD_ROOT}/project/external/release/bin/protoc")
-set(GRPC_PLUG_EXE				"${PRD_ROOT}/project/external/release/bin/grpc_cpp_plugin")
+set(PROTOC_EXE					"${PRD_ROOT}/project/external/release.x86/bin/protoc")
+set(GRPC_PLUG_EXE				"${PRD_ROOT}/project/external/release.x86/bin/grpc_cpp_plugin")
 
 
 link_directories(				${PROTOBUF}/lib64
@@ -39,7 +39,9 @@ link_directories(				${PROTOBUF}/lib64
 #
 # Includes
 #
-include_directories(			${PRD_ROOT}/project/external/release/include
+include_directories(			${PRD_ROOT}/project/external
+								${PRD_ROOT}/project/external/release.x86/include
+								${PRD_ROOT}/project/external/release.x86/include
 								include
 								include/parameters
 								math/attitude/include
@@ -90,7 +92,7 @@ add_custom_command(				OUTPUT generated/system_service.pb.cc
 								COMMAND "${PROTOC_EXE}" -I=idl --cpp_out=generated/. idl/system_service.proto
 								)
 
-set(CMAKE_CXX_FLAGS "-std=c++14")
+set(CMAKE_CXX_FLAGS "-std=c++17")
 
 add_definitions("-DWITH_DOM"  "-pthread" "-g" "-D__DEBUG__" "-L${PROTOBUF}/lib64" "-L${PROTOBUF}/lib")
 
@@ -321,7 +323,7 @@ add_library(					tlins_sofa
 								math/sofa/src/zpv.c
 								math/sofa/src/zr.c
 								)
-#set_target_properties(tlins_sofa PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(tlins_sofa PROPERTIES COMPILE_FLAGS "-fPIC")
 
 add_library(					tlins_rpc
 								generated/base.pb.cc
@@ -333,7 +335,7 @@ add_library(					tlins_rpc
 								generated/system_service.grpc.pb.cc
 								generated/system_service.pb.cc
 								)
-#set_target_properties(tlins_rpc PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(tlins_rpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 add_library(					tlins_attitude
 								STATIC
@@ -357,7 +359,7 @@ add_library(					tlins_attitude
                                 math/attitude/opt_req/optimal_request_init.cpp
 								math/attitude/opt_req/vecnorm.cpp
 								)
-#set_target_properties(tlins_attitude PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(tlins_attitude PROPERTIES COMPILE_FLAGS "-fPIC")
 
 add_library(					tlins_system_service_client
 								system_service/client/src/tlinsSystemServiceClient.cpp
@@ -371,7 +373,7 @@ add_library(					tlins_client
 								client/src/tlinsMoveServerInterface.cpp
 								client/src/tlinsAstroEngineInterface.cpp
 								)
-#set_target_properties(tlins_client PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(tlins_client PROPERTIES COMPILE_FLAGS "-fPIC")
 
 #
 # Loger
@@ -381,7 +383,7 @@ add_library(					tlins_loger
 								src/tlinsLogger.cpp
 								src/tlinsException.cpp
 								)
-#set_target_properties(tlins_loger PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(tlins_loger PROPERTIES COMPILE_FLAGS "-fPIC")
 
 #target_link_libraries(			tlins_loger
 #								tlins_client

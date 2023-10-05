@@ -249,5 +249,6 @@
         <file>icons/plus-control.svg</file>
         <file>icons/delivery.svg</file>
         <file>icons/status.svg</file>
+        <file>icons/constraint.svg</file>
     </qresource>
 </RCC>

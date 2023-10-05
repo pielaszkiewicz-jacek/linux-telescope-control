@@ -14,62 +14,58 @@
 #include <time.h>
 
 #include <chrono>
+#include <set>
 
 //
 // ----------------------------------------------------------------------------------------
 // Implementacja monitora kolizji
 // ----------------------------------------------------------------------------------------
 //
-std::pair<Eigen::Vector3d, Eigen::Vector3d> MainDeviveLimit::positionLimitGetPosition(const double alfa, const double beta)
+std::pair<Eigen::Vector3d, Eigen::Vector3d> MainDeviceLimit::positionLimitGetPosition(const double alfa,
+                                                                                      const double beta)
 {
 	return limits::tlinsLimitsMath::kinematicsPositionGemetric2(
-		alfa,
-		beta,
-		deviceLimitConfiguration.r1, deviceLimitConfiguration.r2,
-		deviceLimitConfiguration.dx, deviceLimitConfiguration.dz,
-		deviceLimitConfiguration.h,
-		deviceLimitConfiguration.deviceMountAngles);
+	    alfa, beta, deviceLimitConfiguration.r1, deviceLimitConfiguration.r2, deviceLimitConfiguration.dx,
+	    deviceLimitConfiguration.dz, deviceLimitConfiguration.h, deviceLimitConfiguration.deviceMountAngles);
 }
 
-bool MainDeviveLimit::checkPath(const Eigen::Vector2d &start, const Eigen::Vector2d &end, const double deltaX, const double deltaY)
+bool MainDeviceLimit::checkColision(const Eigen::Vector3d &position)
 {
-	double x1{start(0)};
-	double y1{start(1)};
-	double x2{end(0)};
-	double y2{end(1)};
+	// Pozycja w ukladzie sferycznym
+	Eigen::Vector2d outPos;
+	attitude::tlinAttitudeUtilsClass::toSpeherical(position, outPos);
 
-	if(start(0) > end(0)) {
-		x1 = end(0);
-		x2 = start(0);
-	}
+	auto devicePosition = limits::tlinsLimitsMath::kinematicsPositionGemetric2(
+	    outPos(0), outPos(1), deviceLimitConfiguration.r1, deviceLimitConfiguration.r2, deviceLimitConfiguration.dx,
+	    deviceLimitConfiguration.dz, deviceLimitConfiguration.h, deviceLimitConfiguration.deviceMountAngles);
 
-	if(start(1) > end(1)) {
-		y1 = end(1);
-		y2 = start(1);
-	}
+	// Detekcja kolizji z montazem teleskopu
+	limits::tlinsLimitsMount limitsMountCalculator{
+	    deviceLimitConfiguration.legs,        deviceLimitConfiguration.legRadius,
+	    deviceLimitConfiguration.legsZOffset, deviceLimitConfiguration.legsStartAngle,
+	    deviceLimitConfiguration.legsAngle,   deviceLimitConfiguration.baseRadius,
+	    deviceLimitConfiguration.baseLength};
 
-	for(auto x = x1; x < x2; x += deltaX) {
-		for(auto y = y1; y < y2; y += deltaY) {
-			if(checkColision(attitude::tlinAttitudeUtilsClass::toCartesianBase(x, y))) {
-				return true;
-			}
-		}
+	// Sprawdzenie kolizji dla obu stron tubusa
+	auto result1 = limitsMountCalculator.checkColistion(devicePosition.first);
+	auto result2 = limitsMountCalculator.checkColistion(devicePosition.second);
+
+	if (result1.first != limits::tlinsLimitsMount::colistionType::COLISTION_NONE ||
+	    result1.first != limits::tlinsLimitsMount::colistionType::COLISTION_NONE) {
+		return false;
 	}
-	return false;
+	return true;
 }
 
-bool MainDeviveLimit::checkColision(const Eigen::Vector3d &position)
+void MainDeviceLimit::startMonitoring()
 {
-	return limits::tlinsLimitsMath::isInRange(deviceLimitDefinition.limits, position);
-}
-
-void MainDeviveLimit::startMonitoring()
-{
+	TLINS_LOG_WARNING("Limiuts has been started");
 	enableTrackPosition.store(true);
 	threadTrackPositionLimitCtrlCv.notify_all();
 }
-void MainDeviveLimit::stopMonitoring()
+void MainDeviceLimit::stopMonitoring()
 {
+	TLINS_LOG_WARNING("Limiuts has been stoped");
 	enableTrackPosition.store(false);
 }
 
@@ -104,31 +100,34 @@ __positionInfo__::__positionInfo__(const std::string &axisName_, const long &pos
 {
 }
 
-void MainDeviveLimit::addLimitDefinition(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2)
+void MainDeviceLimit::addLimitDefinition(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2)
 {
-	deviceLimitDefinition.addLimit(v1, v2);
+	// TODO
+	// TODO: implement
+	// TODO
+	// deviceLimitDefinition.addLimit(v1, v2);
 }
 
-void MainDeviveLimit::endTrack(void)
+void MainDeviceLimit::endTrack(void)
 {
 	endTrackPositionLimit.store(true);
 	threadTrackPositionLimitCtrlCv.notify_all();
 }
 
-void MainDeviveLimit::join()
+void MainDeviceLimit::join()
 {
 	if (threadTrackPositionLimit.joinable()) {
 		threadTrackPositionLimit.join();
 	}
 }
 
-void MainDeviveLimit::registerConfirmation(const std::string &id)
+void MainDeviceLimit::registerConfirmation(const std::string &id)
 {
 	std::unique_lock<std::mutex> lock(confirmationsMtx);
 	confirmations.insert(id);
 }
 
-MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThread> &mainDeviceThread_,
+MainDeviceLimit::MainDeviceLimit(const std::shared_ptr<MainDeviceMoreRequestsThread> &mainDeviceThread_,
                                  const DeviceLimitDeviceDefinition                   &limitConf)
     : deviceLimitConfiguration{limitConf},
       mainDevice{mainDeviceThread_->getMainDevice()},
@@ -143,7 +142,7 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 
 	// Odczy pozycji osi
 	auto readPosition = [this](std::map<std::string, __positionInfo__> &position) {
-		for (auto &devIter : *mainDevice) {
+		for (const auto &devIter : *mainDevice) {
 			auto             dev = devIter.second;
 			__positionInfo__ pos{};
 			dev->getActualPosition(pos.pos, pos.encPos, pos.rawPos, pos.rawEncPos);
@@ -157,7 +156,7 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 	};
 
 	// Okreslenie kata obrotu osi
-	auto getAngles = [](std::map<std::string, __positionInfo__> &position, double &alfa, double &beta) {
+	auto getAngles = [](std::map<std::string, __positionInfo__, std::less<>> &position, double &alfa, double &beta) {
 		if (position.count("X") != 0) {
 			alfa = tlinsMath::PI_2 * static_cast<double>(position["X"].pos) /
 			       static_cast<double>(position["X"].deviceResoultion);
@@ -173,8 +172,8 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 		for (auto &confirmationId : confirmations) {
 
 			//  Limit pozycji
-			std::unique_ptr<tlins::tlinsRpcConfirmationStatus> confData(
-				new tlins::tlinsRpcConfirmationStatus());
+			std::unique_ptr<tlins::tlinsRpcConfirmationStatus> confData =
+			    std::make_unique<tlins::tlinsRpcConfirmationStatus>();
 			confData->set_type(tlins::tlinsSerialDeviceConfirmationType::_CONF_POSITION_LIMITS);
 			confData->set_userrequestid(-1);
 
@@ -193,7 +192,6 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 	auto threadFunction = [this, sleep_, readPosition, getAngles, sendNoti]() {
 		while (!endTrackPositionLimit.load()) {
 			if (!enableTrackPosition.load()) {
-
 				// Wyslanie notyfikacji ze limity zostaly wstrzymane
 				sendNoti(tlins::tlinsDeviceStatus::_CONF_DEVICE_LIMITS_SUSPENDED);
 
@@ -213,35 +211,58 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 				double alfa{0.0};
 				double beta{0.0};
 
-				for(auto &iter: position) {
-					auto name = iter.first;
-					auto pos = iter.second;
+				for (auto &iter : position) {
+					auto &name = iter.first;
+					auto &pos  = iter.second;
 
-					auto dev = mainDevice -> find(name);
-					if(dev != mainDevice -> end()) {
-						if       (name == "X") {
-							alfa = static_cast<double>(pos.pos) / static_cast<double>(dev->second -> get_default_CFG_PULS_MAX());
-						} else if(name == "Y") {
-							beta = static_cast<double>(pos.pos) / static_cast<double>(dev->second -> get_default_CFG_PULS_MAX());
-						}
+					auto dev = mainDevice->find(name);
+					if (dev == mainDevice->end()) {
+						continue;
+					}
+					if (name == "X") {
+						alfa =
+						    static_cast<double>(pos.pos) / static_cast<double>(dev->second->get_default_CFG_PULS_MAX());
+					} else if (name == "Y") {
+						beta =
+						    static_cast<double>(pos.pos) / static_cast<double>(dev->second->get_default_CFG_PULS_MAX());
 					}
 				}
 
 				// Wyznaczenie pozycji
 				auto devicePosition = limits::tlinsLimitsMath::kinematicsPositionGemetric2(
-				    alfa,
-					beta,
-					deviceLimitConfiguration.r1, deviceLimitConfiguration.r2,
-					deviceLimitConfiguration.dx, deviceLimitConfiguration.dz,
-					deviceLimitConfiguration.h,
+				    alfa, beta, deviceLimitConfiguration.r1, deviceLimitConfiguration.r2, deviceLimitConfiguration.dx,
+				    deviceLimitConfiguration.dz, deviceLimitConfiguration.h,
 				    deviceLimitConfiguration.deviceMountAngles);
 
-				if (limits::tlinsLimitsMath::isInRange(deviceLimitDefinition.limits, devicePosition.first) ||
-				    limits::tlinsLimitsMath::isInRange(deviceLimitDefinition.limits, devicePosition.second)) {
+				TLINS_LOG_WARNING(
+				    std::string{"Limiuts thread loop : ["} + std::to_string(devicePosition.first(0)) + "; " +
+				    std::to_string(devicePosition.first(1)) + "; " + std::to_string(devicePosition.first(2)) + "][" +
+				    std::to_string(devicePosition.second(0)) + "; " + std::to_string(devicePosition.second(1)) + "; " +
+				    std::to_string(devicePosition.second(2)) + "]");
+
+
+				// Sprawdzenie czy tuba teleskopu nie jest w kolizji z montazem
+				limits::tlinsLimitsMount moutLimit{
+				    deviceLimitConfiguration.legs,        deviceLimitConfiguration.legRadius,
+				    deviceLimitConfiguration.legsZOffset, deviceLimitConfiguration.legsStartAngle,
+				    deviceLimitConfiguration.legsAngle,   deviceLimitConfiguration.baseRadius,
+				    deviceLimitConfiguration.baseLength};
+
+				// Sprawdzenie kolzji dla obu koncow tubusa montazu
+				std::pair<limits::tlinsLimitsMount::colistionType, int> moutColistionResult1 =
+				    moutLimit.checkColistion(devicePosition.first);
+				std::pair<limits::tlinsLimitsMount::colistionType, int> moutColistionResult2 =
+				    moutLimit.checkColistion(devicePosition.second);
+
+				if (moutColistionResult1.first != limits::tlinsLimitsMount::colistionType::COLISTION_NONE ||
+				    moutColistionResult2.first != limits::tlinsLimitsMount::colistionType::COLISTION_NONE) {
+					// Mamy do czynienia z kolizją
+
+					TLINS_LOG_WARNING("Kolizja z montazem - urzadzenie bedzie zatrzymane");
 					// Zatrzymanie urzadzenia i wyslanie notyfikacji
 					long A{0L};
 					long D{0L};
-					for (const auto iter : *mainDevice) {
+					for (const auto &iter : *mainDevice) {
 						A = iter.second->get_default_RAMP_A();
 						D = iter.second->get_default_RAMP_D();
 						break;
@@ -253,7 +274,7 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 					                                                          tlinsSerialMoveModeRelAbs::ABS, A, D, 0L);
 
 					// Dodanie do rzadania poszczegolnych skladowych osi
-					for (const auto iter : *mainDevice) {
+					for (const auto &iter : *mainDevice) {
 						tlinsSerialDevicePositionRequestAxis reqItem(iter.second->get_default_RAMP_A(),
 						                                             iter.second->get_default_RAMP_D(), 0L,
 						                                             tlinsSerialDirection::RIGHT, 0L);
@@ -275,7 +296,7 @@ MainDeviveLimit::MainDeviveLimit(const std::shared_ptr<MainDeviceMoreRequestsThr
 	threadTrackPositionLimit = std::thread(threadFunction);
 }
 
-MainDeviveLimit::~MainDeviveLimit()
+MainDeviceLimit::~MainDeviceLimit()
 {
 	endTrackPositionLimit.store(true);
 	if (threadTrackPositionLimit.joinable()) {
@@ -286,22 +307,22 @@ MainDeviveLimit::~MainDeviveLimit()
 //
 // ----------------------------------------------------------------------------------------
 //
-void MainDeviveLimitManager::addDevicesLimit(const std::string &devName, const std::shared_ptr<MainDeviveLimit> &devLim)
+void MainDeviveLimitManager::addDevicesLimit(const std::string &devName, const std::shared_ptr<MainDeviceLimit> &devLim)
 {
 	devicesMap[devName] = devLim;
 }
 
-std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator MainDeviveLimitManager::find(const std::string &name)
+std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator MainDeviveLimitManager::find(const std::string &name)
 {
 	return devicesMap.find(name);
 }
 
-std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator MainDeviveLimitManager::begin()
+std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator MainDeviveLimitManager::begin()
 {
 	return devicesMap.begin();
 }
 
-std::map<std::string, std::shared_ptr<MainDeviveLimit>>::iterator MainDeviveLimitManager::end()
+std::map<std::string, std::shared_ptr<MainDeviceLimit>>::iterator MainDeviveLimitManager::end()
 {
 	return devicesMap.end();
 }
@@ -315,8 +336,6 @@ MainDeviveLimitManager &MainDeviveLimitManager::getInstance()
 //
 // ----------------------------------------------------------------------------------------
 //
-
-
 static void __setStatus__(tlins::tlinsRpcStatus *status, const tlins::ErrorCodes errorStatus, const int errorCode,
                           const std::string &desc)
 {
@@ -334,8 +353,7 @@ void tlinsSerialConfirmationQueue::enqueue(std::unique_ptr<tlins::tlinsRpcConfir
 		std::unique_lock<std::mutex> lock(mtx);
 
 		if (queue.size() >= maxLen) {
-			// Usuniecie komunikatu z poczatku kolejki
-			// Zabespieczenie przed systuacja gdy klient nie odczytuje
+			// Usuniecie komunikatu z poczatku kolejki. Zabespieczenie przed systuacja gdy klient nie odczytuje
 			// potwierdzen
 			queue.pop_front();
 		}
@@ -753,11 +771,11 @@ grpc::Status tlinsRpcMoveControlServer::setDateTime(grpc::ServerContext         
 		return grpc::Status::OK;
 	}
 	// Ustawienie czasu
-	if (stime(&dateTimeValue) < 0) {
-		__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR, static_cast<int>(tlinsServerErrorCodes::ERROR),
-		              std::string{"Invalid date/time info"});
-		return grpc::Status::OK;
-	}
+	// if (stime(&dateTimeValue) < 0) {
+	// 	__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_ERROR, static_cast<int>(tlinsServerErrorCodes::ERROR),
+	// 	              std::string{"Invalid date/time info"});
+	// 	return grpc::Status::OK;
+	// }
 
 	__setStatus__(response, tlins::ErrorCodes::_ERROR_CODE_SUCCESS, static_cast<int>(tlinsServerErrorCodes::SUCCESS),
 	              std::string{"Success"});
@@ -910,7 +928,7 @@ grpc::Status tlinsRpcMoveControlServer::setPosition(grpc::ServerContext         
 
 		for (int i = 0; i < request->axies_size(); i++) {
 			auto &axis           = request->axies(i);
-			auto  aName          = axis.axisname();
+			auto &aName          = axis.axisname();
 			long  encoderPostion = axis.encoderpostion();
 			long  motorPostion   = axis.motorpostion();
 			auto &axisDev        = *(mainDev.find(aName)->second);
@@ -977,39 +995,45 @@ grpc::Status tlinsRpcMoveControlServer::setMoveRequest(grpc::ServerContext      
 		gV = request->v().value();
 	}
 
+	// Weryfikacja requestu i ewentualne wymuszenie oczekiwanego trybu pracy
 	tlinsSerialMoveType mode;
+	auto                _serverMode_ = tlinsSerialServerMode::MODE_NONE;
 	if (request->has_mode()) {
 		switch (request->mode().value()) {
 		case tlins::tlinsSerialMoveType::_SPEED:
-			mode = ::tlinsSerialMoveType::SPEED;
+			mode         = tlinsSerialMoveType::SPEED;
+			_serverMode_ = tlinsSerialServerMode::MODE_SEPARATE_AXIS;
 			break;
 
 		case tlins::tlinsSerialMoveType::_POSITION:
-			mode = ::tlinsSerialMoveType::POSITION;
+			mode         = tlinsSerialMoveType::POSITION;
+			_serverMode_ = tlinsSerialServerMode::MODE_SYNCHRONISED;
 			break;
 
 		case tlins::tlinsSerialMoveType::_STOP:
-			mode = ::tlinsSerialMoveType::STOP;
+			mode         = tlinsSerialMoveType::STOP;
+			_serverMode_ = tlinsSerialServerMode::MODE_NONE;
 			break;
 
 		case tlins::tlinsSerialMoveType::_ABORT:
-			mode = ::tlinsSerialMoveType::ABORT;
+			mode         = tlinsSerialMoveType::ABORT;
+			_serverMode_ = tlinsSerialServerMode::MODE_NONE;
 			break;
 		}
 	}
+	/*
+	    if (parent.getServerMode(mainDeviceName) == tlinsSerialServerMode::MODE_SYNCHRONISED &&
+	        request->mode().value() == tlins::tlinsSerialMoveType::_SPEED) {
+	        TLINS_LOG_ERROR("In synchronus mode SPEED mode is not avalible");
 
-	if (parent.getServerMode(mainDeviceName) == tlinsSerialServerMode::MODE_SYNCHRONISED &&
-	    request->mode().value() == tlins::tlinsSerialMoveType::_SPEED) {
-		TLINS_LOG_ERROR("In synchronus mode SPEED mode is not avalible");
-
-		// Blasd rejestracji rzadania. W trybie synchronicznym tryb SPEED jest niedostępny
-		response->set_requestid(-1);
-		__setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR,
-		              static_cast<int32_t>(tlinsServerErrorCodes::INVALID_SERVER_MODE),
-		              "SPEED mode is not avalible in SYNCHRONUS MODE");
-		return grpc::Status::OK;
-	}
-
+	        // Blasd rejestracji rzadania. W trybie synchronicznym tryb SPEED jest niedostępny
+	        response->set_requestid(-1);
+	        __setStatus__(response->mutable_status(), tlins::ErrorCodes::_ERROR_CODE_ERROR,
+	                      static_cast<int32_t>(tlinsServerErrorCodes::INVALID_SERVER_MODE),
+	                      "SPEED mode is not avalible in SYNCHRONUS MODE");
+	        return grpc::Status::OK;
+	    }
+	*/
 	tlinsSerialMoveInterpolationType interpolationType = tlinsSerialMoveInterpolationType::LAST;
 	if (request->has_interpolationtype()) {
 		if (request->interpolationtype().value() == tlins::tlinsSerialMoveInterpolationType::_LINEAR)
@@ -1089,6 +1113,7 @@ grpc::Status tlinsRpcMoveControlServer::setMoveRequest(grpc::ServerContext      
 		if (item.has_distance()) {
 			distance = item.distance().value();
 		}
+		TLINS_LOG_DEBUG(axisName + " = " + std::to_string(distance) + "; V =" + std::to_string(V));
 
 		// Request item
 		tlinsSerialDevicePositionRequestAxis reqItem(A, D, V, direction, distance);
@@ -1377,6 +1402,64 @@ void MainDeviceMoreRequestsThread::confirmPosition(
 		}
 }
 
+void MainDeviceMoreRequestsThread::enforceServerMode(const tlinsSerialServerMode mode)
+{
+	// Blokada
+	std::lock_guard<std::recursive_mutex> lock(serverMtx);
+
+	// Wysalnie potwierdzen do klientow ze rzadania zostaly odrzucone
+	for (auto &req : requestStatusInfo) {
+		// Potwierdzenie ze request zostal odrzucony
+		confirmRequest(req.second->request, tlinsSerialRequestStatusResult::STATUS_REJECTED);
+	}
+
+	// Czyszczenie map i kolejek
+	requestQueue.clear();
+	axisRequests.clear();
+	priorityRequestQueue.clear();
+
+	for (auto iter = mainDevice->begin(); iter != mainDevice->end(); iter++) {
+		directions[iter->first]        = tlinsServerDirectionInfo::IDLE;
+		statusNeeded[iter->first]      = false;
+		statusNeededStart[iter->first] = false;
+	}
+
+	// Nowy tryb
+	serverMode = mode;
+
+	switch (serverMode) {
+	case tlinsSerialServerMode::MODE_SYNCHRONISED:
+		// Wlaczenie synchronicznego sterowania przemieszczeniem na kontrolerze
+		mainDevice->enableSynchMode();
+		break;
+
+	case tlinsSerialServerMode::MODE_SEPARATE_AXIS:
+		// Wylaczenie synchronicznego sterowania przemieszczeniem na kontrolerze
+		mainDevice->disableSynchMode();
+		break;
+	}
+
+	requestStatusInfo.clear();
+	axisToRequestStatus.clear();
+
+	// Fizyczne awaryjne zatrzymanie calego urzadzenia
+	try {
+		mainDevice->abort();
+		for (auto &iter : *mainDevice) {
+			statusNeededStart[iter.first] = true;
+
+
+			// Identyfikator potwierdzenia
+			auto id = mainDevice->getNextConfId();
+			mainDevice->setConfId(iter.first, id);
+			reqIdsMap[iter.first] = id;
+		}
+	}
+	catch (...) {
+		TLINS_LOG_ERROR("Error abort device");
+	}
+}
+
 void MainDeviceMoreRequestsThread::setServerMode(const tlinsSerialServerMode mode)
 {
 	std::lock_guard<std::recursive_mutex> lock(serverMtx);
@@ -1431,7 +1514,8 @@ void MainDeviceMoreRequestsThread::setServerMode(const tlinsSerialServerMode mod
 	priorityRequestQueue.enqueueFront(ptr);
 }
 
-void MainDeviceMoreRequestsThread::enqueRequest(const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req)
+void MainDeviceMoreRequestsThread::enqueRequest(const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req,
+                                                const tlinsSerialServerMode                          serverMode_)
 {
 	// Dostep do kolejki rzadan jest atomowy
 	std::lock_guard<std::recursive_mutex> lock(serverMtx);
@@ -1451,16 +1535,43 @@ void MainDeviceMoreRequestsThread::enqueRequest(const std::shared_ptr<tlinsSeria
 		}
 	}
 
+	// Oczekiwany tryb pracy
+	tlinsSerialServerMode expectedMode{tlinsSerialServerMode::MODE_NONE};
+	switch (req->getMode()) {
+	case tlinsSerialMoveType::SPEED:
+		expectedMode = tlinsSerialServerMode::MODE_SEPARATE_AXIS;
+		break;
+	case tlinsSerialMoveType::POSITION:
+		expectedMode = tlinsSerialServerMode::MODE_SYNCHRONISED;
+		break;
+	case tlinsSerialMoveType::STOP:
+		expectedMode = tlinsSerialServerMode::MODE_NONE;
+		break;
+	case tlinsSerialMoveType::ABORT:
+		expectedMode = tlinsSerialServerMode::MODE_NONE;
+		break;
+	case tlinsSerialMoveType::STOP_CTRL:
+		expectedMode = tlinsSerialServerMode::MODE_NONE;
+		break;
+	case tlinsSerialMoveType::LAST:
+		expectedMode = tlinsSerialServerMode::MODE_NONE;
+		break;
+	}
+
+	if (serverMode != expectedMode && expectedMode != tlinsSerialServerMode::MODE_NONE) {
+		TLINS_LOG_ERROR("------------------------- ZMIANA trybu pracy dpasowanego do przemieszczenia "
+		                "-------------------------------------");
+		enforceServerMode(expectedMode);
+	}
+
 	// Informacja o statusie rzadania
 	auto statPtr = std::make_shared<RequestStatusInfo>(req);
 
 	// Dodanie informacji o statusie
 	requestStatusInfo[req->getRequestID()] = statPtr;
 
-	// Tylko ABORT bedzie wstawiany do kolejki piorytetowej
-	// Wszystkie inne beda wstawiuane do kolejki wejsciowej
-	// STOP i STOP_CTRL bedzie wstawiany na poczatek kolejki
-
+	// Tylko ABORT bedzie wstawiany do kolejki piorytetowej. Wszystkie inne beda wstawiuane do kolejki wejsciowej. STOP
+	// i STOP_CTRL bedzie wstawiany na poczatek kolejki
 	if (req->getMode() == tlinsSerialMoveType::ABORT) {
 		// Rzadanie typu ABORT - wstawiane na poczatek kolejki piorytetowej
 		priorityRequestQueue.enqueueFront(req);
@@ -1471,7 +1582,6 @@ void MainDeviceMoreRequestsThread::enqueRequest(const std::shared_ptr<tlinsSeria
 	}
 
 	if (serverMode == tlinsSerialServerMode::MODE_SEPARATE_AXIS) {
-		// Tryb tlinsSerialServerMode::MODE_SEPARATE_AXIS
 		for (auto i = req->begin(); i != req->end(); i++) {
 			if (req->getMode() == tlinsSerialMoveType::STOP_CTRL || req->getMode() == tlinsSerialMoveType::STOP) {
 				axisRequests[i->first].enqueueFront(req);
@@ -1668,18 +1778,23 @@ void MainDeviceMoreRequestsThread::speedSelectAxis(const std::string            
 	statusNeeded[a]        = false;
 	statusNeededStart[a]   = false;
 
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:1");
+
 	// Kierunek obrotu
 	auto aReq = (*req)[a];
 	switch (aReq.getDirection()) {
 	case tlinsSerialDirection::LEFT:
+		TLINS_LOG_DEBUG("DDDDDDDDDDD:2");
 		directions[a] = tlinsServerDirectionInfo::LEFT;
 		break;
 
 	case tlinsSerialDirection::RIGHT:
+		TLINS_LOG_DEBUG("DDDDDDDDDDD:3");
 		directions[a] = tlinsServerDirectionInfo::RIGHT;
 		break;
 
 	default:
+		TLINS_LOG_DEBUG("DDDDDDDDDDD:4");
 		// Bledne dane rzadania - przekazanie statusu
 		statusInfo->confirm(a, tlinsSerialRequestStatusResult::STATUS_ERROR);
 		statusNeeded[a]      = false;
@@ -1696,12 +1811,23 @@ void MainDeviceMoreRequestsThread::speedSelectAxis(const std::string            
 		return;
 	}
 
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:5");
+
+	TLINS_LOG_DEBUG(a + "; A = " + std::to_string(aReq.getA()) + "; D = " + std::to_string(aReq.getD()) +
+	                "; V = " + std::to_string(aReq.getV()) + "; DIR = " + std::to_string((int) aReq.getDirection()));
+
 	// Wyslanie wlasciwego rzadania do urzadzenia. Zakladamy ze rzadanie zostalo wczeniej potwierdzone
-	// Urzadzeni eni ebedzie weryfikowane
+	// Urzadzeni enie bedzie weryfikowane
 	auto aDevIter = mainDevice->find(a);
-	auto aDev     = aDevIter->second;
-	aDev->setRampParameters(aReq.getA(), aReq.getD(), aReq.getV());
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:6");
+	auto aDev = aDevIter->second;
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:7");
+	// aDev->setRampParameters(aReq.getA(), aReq.getD(), aReq.getV());
+	aDev->setRampParametersSpeed(aReq.getA(), aReq.getD());
+
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:8");
 	aDev->setSpeed(aReq.getV(), aReq.getDirection());
+	TLINS_LOG_DEBUG("DDDDDDDDDDD:9");
 }
 
 void MainDeviceMoreRequestsThread::positionSelectAxis(const std::string                                   &a,
@@ -1783,59 +1909,77 @@ void MainDeviceMoreRequestsThread::setNextStandardRequestAxis()
 		auto  aname = aiter.first;
 
 		// Nastepna os jesli nie ma nic w kolejce wejsciowej
-		if (queue.isEmpty())
+		if (queue.isEmpty()) {
 			continue;
+		}
 
 		// Sprawdzenie czy komunikat w kolejce to zatrzymanie
 		std::shared_ptr<tlinsSerialDeviceMoveRequest> req;
 		queue.getFront(req);
 
+		TLINS_LOG_ERROR("RRRR : 3");
+
 		// Rodzaj przemieszczenuia oraz kierunek przemieszczenia
 		auto rType = req->getMode();
 
-		tlinsServerDirectionInfo rDir = tlinsServerDirectionInfo::IDLE;
+		// tlinsServerDirectionInfo rDir = tlinsServerDirectionInfo::IDLE;
 		switch ((*req)[aname].getDirection()) {
 		case tlinsSerialDirection::LEFT:
-			rDir = tlinsServerDirectionInfo::LEFT;
+			TLINS_LOG_ERROR("RRRR : 4");
+			// rDir = tlinsServerDirectionInfo::LEFT;
 			break;
 
 		case tlinsSerialDirection::RIGHT:
-			rDir = tlinsServerDirectionInfo::RIGHT;
+			TLINS_LOG_ERROR("RRRR : 5");
+			// rDir = tlinsServerDirectionInfo::RIGHT;
 			break;
 		}
 
 		if (rType == tlinsSerialMoveType::STOP) {
+			TLINS_LOG_ERROR("RRRR : 6");
 			queue.popFront();
 			stopSelectedAxis(aname, req);
 			continue;
 		} else {
+			TLINS_LOG_ERROR("RRRR : 7");
 			bool send = false;
 
 			// Aktualny kierunek obrotu
-			auto &aDir = directions[aname];
+			auto aDir = tlinsServerDirectionInfo::IDLE;
+			if (directions.count(aname) == 0) {
+				aDir = directions[aname];
+			}
 			if (aDir != tlinsServerDirectionInfo::IDLE) {
+				TLINS_LOG_ERROR("RRRR : 8");
 				// Typ aktualnego przemieszczenia
 				auto aType = axisToRequestStatus[aname]->request->getMode();
 				if (aType != tlinsSerialMoveType::SPEED) {
+					TLINS_LOG_ERROR("RRRR : 9");
 					// Czekamy na zakonczenie pracy biezacej osi
 					continue;
 				} else {
+					TLINS_LOG_ERROR("RRRR : 10");
 					send = true;
 				}
 			} else {
+				TLINS_LOG_ERROR("RRRR : 11");
 				// Os nie jest zajeta moze robic cos nowego
 				send = true;
 			}
+			TLINS_LOG_ERROR("RRRR : 12");
 
 			if (send) {
+				TLINS_LOG_ERROR("RRRR : 13");
 				queue.popFront();
 
 				switch (rType) {
 				case tlinsSerialMoveType::SPEED:
+					TLINS_LOG_ERROR("RRRR : 14");
 					speedSelectAxis(aname, req);
 					break;
 
 				case tlinsSerialMoveType::POSITION:
+					TLINS_LOG_ERROR("RRRR : 15");
 					positionSelectAxis(aname, req);
 					break;
 				}
@@ -1936,10 +2080,14 @@ void MainDeviceMoreRequestsThread::moveRequestSynch(const std::shared_ptr<tlinsS
 	directions.clear();
 
 	// Wygenerowanie przemieszczenia
+	std::set<std::string> aInput{};
+
 	for (auto item = req->begin(); item != req->end(); item++) {
 		// Szczegoly rzadania
 		auto axisName = item->first;
 		auto reqAxis  = item->second;
+
+		aInput.insert(axisName);
 
 		// Licznik potwierdzen
 		reqStatus->addAxis(axisName);
@@ -1968,13 +2116,22 @@ void MainDeviceMoreRequestsThread::moveRequestSynch(const std::shared_ptr<tlinsS
 		}
 	}
 
-	for (auto item = req->begin(); item != req->end(); item++) {
-		statusNeededStart[item->first] = true;
+	// Gdy przemieszczenie relatywne dodajemy brakujace osie
+	if (req->getMoveType() == tlinsSerialMoveModeRelAbs::REL) {
+		for (auto devIter : *mainDevice) {
+			if (aInput.count(devIter.first) == 0) {
+				devIter.second->setPosition(0L, tlinsSerialDirection::LEFT);
+			}
+		}
+	}
+
+	for (auto &item : *req) {
+		statusNeededStart[item.first] = true;
 
 		// Identyfikator potwierdzenia
 		auto id = mainDevice->getNextConfId();
-		mainDevice->setConfId(item->first, id);
-		reqIdsMap[item->first] = id;
+		mainDevice->setConfId(item.first, id);
+		reqIdsMap[item.first] = id;
 	}
 
 	// Uruchomienie przemieszczenia w trybie interpolacji
@@ -2000,6 +2157,7 @@ void MainDeviceMoreRequestsThread::setNextSynchronusRequest()
 		// Rzadanie typu stop - zatrzymujemy
 		requestQueue.popFront();
 		stopRequestSynch(req);
+		return;
 	}
 
 	// Sprawdzenie czy wszystkie skladowe rzadania sa potwierdzone
@@ -2112,12 +2270,12 @@ void MainDeviceMoreRequestsThread::join()
 }
 
 MainDeviceMoreRequestsThread::MainDeviceMoreRequestsThread(const std::shared_ptr<tlinsSerialMainDevice> &mainDevice_)
-    : mainDevice{mainDevice_}, end{false}, serverMode{tlinsSerialServerMode::MODE_SEPARATE_AXIS}
+    : mainDevice{mainDevice_}
 {
-	std::thread *thread_ = new std::thread(std::ref(*this));
-	th                   = std::unique_ptr<std::thread>(thread_);
+	auto thread_ = new std::thread(std::ref(*this));
+	th           = std::unique_ptr<std::thread>(thread_);
 
-	auto ret = mainDevice->addCallback(
+	mainDevice->addCallback(
 	    [this](const std::vector<std::pair<std::string, tlinsSerialMainDevice::ConfirmationInfo>> &s) {
 		    this->confirmMove(s);
 	    });
@@ -2254,19 +2412,31 @@ bool tlinsSerialServer::registerDeviceLimit(const std::string                   
 	}
 
 	// Definicja limitu
-	DeviceLimitDeviceDefinition limitsDef{
-		dev->getLimitsH(),
-		dev->getLimitsR1(),
-		dev->getLimitsR2(),
-		dev->getLimitsDX(),
-		dev->getLimitsDZ(),
-	    dev->getLimitsFrequency()};
-	for(auto &item: dev -> getLimitsAxisAngles()) {
+	DeviceLimitDeviceDefinition limitsDef{};
+
+	limitsDef.h         = dev->getLimitsH();
+	limitsDef.r1        = dev->getLimitsR1();
+	limitsDef.r2        = dev->getLimitsR2();
+	limitsDef.dx        = dev->getLimitsDX();
+	limitsDef.dz        = dev->getLimitsDZ();
+	limitsDef.frequency = dev->getLimitsFrequency();
+
+	// Parametery podstawy
+	limitsDef.legs           = dev->getLimitsLegs();
+	limitsDef.legRadius      = dev->getLimitsLegRadius();
+	limitsDef.legsZOffset    = dev->getLimitsLegsZOffset();
+	limitsDef.legsStartAngle = dev->getLimitsLegsSartAngle();
+	limitsDef.legsAngle      = dev->getLimitsLegsAngle();
+	limitsDef.tubeRadius     = dev->getLimitsTubeRadius();
+	limitsDef.baseRadius     = dev->getLimitsBaseRadius();
+	limitsDef.baseLength     = dev->getLimitsBaseLength();
+
+	for (const auto &item : dev->getLimitsAxisAngles()) {
 		limitsDef.addAngle(item.first, item.second);
 	}
 
 	// Wlasciwy obiekt analizujacy limity
-	auto newLimit = std::make_shared<MainDeviveLimit>(serverThreads[devName], limitsDef);
+	auto newLimit = std::make_shared<MainDeviceLimit>(serverThreads[devName], limitsDef);
 
 	// Rejestracja managera limitow
 	serverLimits[devName] = newLimit;
@@ -2274,7 +2444,8 @@ bool tlinsSerialServer::registerDeviceLimit(const std::string                   
 }
 
 void tlinsSerialServer::enqueRequest(const std::string                                   &devName,
-                                     const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req)
+                                     const std::shared_ptr<tlinsSerialDeviceMoveRequest> &req,
+                                     const tlinsSerialServerMode                          serverMode_)
 {
 	std::unique_lock<std::mutex> lock(mtx);
 
@@ -2291,13 +2462,13 @@ void tlinsSerialServer::end()
 {
 	std::unique_lock<std::mutex> lock(mtx);
 
-	for (auto &item : serverThreads) {
+	for (const auto &item : serverThreads) {
 		item.second->endThread();
 		item.second->join();
 	}
 
 	std::for_each(serverLimits.begin(), serverLimits.end(),
-	              [&](const std::pair<std::string, std::shared_ptr<MainDeviveLimit>> &item) {
+	              [&](const std::pair<std::string, std::shared_ptr<MainDeviceLimit>> &item) {
 		              item.second->endTrack();
 		              item.second->join();
 	              });

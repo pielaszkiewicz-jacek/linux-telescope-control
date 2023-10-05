@@ -46,6 +46,8 @@ class tlinAttitudeUtilsClass {
 	static double epsylonError;
 	static double pi;
 
+	static std::pair<double, bool> deltaMinimumPosition(const double currPos, const double newPos);
+
 	//
 	// Metoda wyznacza prekosc obroitu dla pary wektorów obserwacyjnych
 	//
@@ -64,11 +66,13 @@ class tlinAttitudeUtilsClass {
 	//
 	// Konwersja miedzy ukladami wspolrzednych
 	//
-	static Eigen::Vector3d toCartesianBase(const double alfa, const double beta);
+	static Eigen::Vector3d toCartesianBase(const double alfa, const double beta, const double r = 1.0);
 
-	static void toCartesian(const double alfa, const double beta, Eigen::Vector3d &axis);
-	static void toCartesian(const Eigen::Vector2d &in, Eigen::Vector3d &axis);
+	static void toCartesian(const double alfa, const double beta, Eigen::Vector3d &axis, const double r = 1.0);
+	static void toCartesian(const Eigen::Vector2d &in, Eigen::Vector3d &axis, const double r = 1.0);
 	static void toSpeherical(const Eigen::Vector3d &in, Eigen::Vector2d &out);
+
+	static void toSpeherical(const Eigen::Vector3d &in, Eigen::Vector2d &out, double &r);
 
 	static void calculate_inv(const Eigen::Matrix3d &in, Eigen::Matrix3d &out);
 

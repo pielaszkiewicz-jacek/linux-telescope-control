@@ -287,6 +287,12 @@ message tlinsLimits
 	repeated tlinsLimit limits = 2;
 }
 
+message tlinsLimitsResult
+{
+	repeated tlinsLimit limits = 1;
+	tlinsRpcStatus result = 2;
+}
+
 message tlinsTestLimit
 {
 	tlinsStringValue deviceName = 1;
@@ -334,7 +340,7 @@ service tlinsRpcService
 
 	// Ustawienie i pobranie wartosci limitu
 	rpc colistionsDetectionSetLimits(tlinsLimits) returns (tlinsRpcStatus) {}
-	rpc colistionsDetectionGetLimits(Void) returns (tlinsLimits) {}
+	rpc colistionsDetectionGetLimits(tlinsStringValue) returns (tlinsLimitsResult) {}
 
 	// Testowanie limitu
 	rpc colistionsDetectionTest(tlinsTestLimit) returns (tlinsTestLimitResult) {}

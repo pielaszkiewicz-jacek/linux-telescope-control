@@ -8,8 +8,60 @@
 #include <utility>
 #include <vector>
 
+#include "tlinAttitudeUtilsClass.hpp"
+#include "tlins_math.hpp"
+
 namespace limits
 {
+
+/*
+   Klasa opisuje montaz jako:
+   - walec pionowy bedacy baza do ktorej pzymocowane sa nogi
+   - walce uksne ustawione pod katem w ilosci n
+ */
+
+class tlinsLimitsMount {
+  public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  private:
+	int             legs{3};                      // Liczba nog montazu
+	double          legRadius{30.0};              // Promien nogi montazu
+	Eigen::Vector3d legsZOffset{0.0, 0.0, -20.0}; // Przesuniecie nog montazu
+	double          legsSartAngle{0.0}; // Kat obrotu w okol osi Z pierwszej nogi monatazu. Wyznaczany obserwacyjnie
+	double          legsAngle{tlinsMath::PI / 3.0 * 2.0}; // Kat pod ktorym pochylona jest noga montazu
+	double          baseRadius{75.0};                     // Promien glonej kolumny montazu
+	double          baseLength{300.0};
+	double          tubeRadius{110.0}; // Srednica tubusa
+
+  public:
+	enum class colistionType { COLISTION_NONE = 0, COLISTION_BASE = 1, COLISTION_LEG = 2 };
+
+	// Metoda sprawdza czy jest kolizja
+	std::pair<colistionType, int> checkColistion(const Eigen::Vector3d &pos);
+
+	// Detekcja kolizji przy przejzdzie miedzy dwoma pozycjami
+	std::vector<std::pair<tlinsLimitsMount::colistionType, int>>
+	detectColistion(const Eigen::Vector3d &s, const Eigen::Vector3d &e, const double delta);
+
+	// Wyznaczenie drogi miedzy dwoma pozycjami aby uniknac kolizji.
+	// Metoda wyznacza dwa dodatkowe punkty posrendnie
+	// Parameter delta oznacza o ile bedziemy podnosic tubus do gory.
+	std::vector<Eigen::Vector3d> makePathWithoutCollision(const Eigen::Vector3d &s, const Eigen::Vector3d &e,
+	                                                      const double delta, const double deltaMove, const int n);
+
+	tlinsLimitsMount &operator=(const tlinsLimitsMount &v) = default;
+	tlinsLimitsMount(const tlinsLimitsMount &v)            = default;
+
+	// Konstruktor klasy
+	tlinsLimitsMount(const int legs_, const double legRadius_, const Eigen::Vector3d &legsZOffset_,
+	                 const double legsSartAngle_, const double legsAngle_, const double baseRadius_,
+	                 const double baseLength_);
+
+	virtual ~tlinsLimitsMount() = default;
+};
+
+
 struct tlinsLimitsDeviceInfo {
 	double alfa  = 0.0;
 	double a     = 0.0;
@@ -53,7 +105,9 @@ class tlinsLimitsMath {
 	                           const double r3, const std::vector<std::pair<std::string, double>> &axis);
 
 	static std::pair<Eigen::Vector3d, Eigen::Vector3d>
-	kinematicsPositionGemetric2(const double alfa, const double beta, const double r1, const double r2, const double dx, const double dz, const double h, const std::vector<std::pair<std::string, double>> &axis);
+	kinematicsPositionGemetric2(const double alfa, const double beta, const double r1, const double r2, const double dx,
+	                            const double dz, const double h,
+	                            const std::vector<std::pair<std::string, double>> &axis);
 
 	// Metoda zwraca informację czy prosta identyfikowana przez punkt p3 jest w odleglosci kontowej <= od odleglosci
 	// miedzy prostymi identyfikowanymi przez punkty p1 i p2. Wszystkie proste przechodzą przez poczatek ukladu

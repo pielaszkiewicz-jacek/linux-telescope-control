@@ -1,0 +1,13 @@
+prefix=/home/jacek/development/project/external.new.2/release.x86
+exec_prefix=/home/jacek/development/project/external.new.2/release.x86
+libdir=/home/jacek/development/project/external.new.2/release.x86/lib
+sharedlibdir=/home/jacek/development/project/external.new.2/release.x86/lib
+includedir=/home/jacek/development/project/external.new.2/release.x86/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

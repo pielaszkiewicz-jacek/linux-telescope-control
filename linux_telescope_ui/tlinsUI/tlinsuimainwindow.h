@@ -24,7 +24,7 @@
 #include <tlinswpilotshortcutsdefinitions.h>
 #include <tlinswtarget.h>
 #include <tlinswtimedateierssettings.h>
-
+#include <tlinslimitsmanagment.h>
 #include <tlinspilot.h>
 
 #include <QMainWindow>
@@ -143,6 +143,10 @@ private:
     tlinsInfoWidget pilotStatusWidget;
     tlinsToolsBaseWidget* pilotStatusWidgetBase;
     tlinsToolBarButton* pilotStatusWidgetButton;
+
+    tlinsLimitsManagmentWidget colliostionWidget;
+    tlinsToolsBaseWidget* colliostionWidgetBase;
+    tlinsToolBarButton* colliostionWidgetButton;
 
     void resizeEvent(QResizeEvent* event);
 

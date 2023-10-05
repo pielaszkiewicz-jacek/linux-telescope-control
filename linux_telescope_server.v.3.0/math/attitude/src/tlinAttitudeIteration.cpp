@@ -89,7 +89,7 @@ void tlinAttitudeIterations::add2(const std::shared_ptr<tlinAttitudeIteration> &
 	auto firstIter    = getLast();
 
 	for (auto &item : attitudeProcessors) {
-		auto                                          processorId = item->name();
+		auto                                          processorId = item.first;
 		std ::shared_ptr<tlinsAttitudeProcessorState> currentState{nullptr};
 		if (previousIter) {
 			currentState = previousIter->getState(processorId);
@@ -97,12 +97,12 @@ void tlinAttitudeIterations::add2(const std::shared_ptr<tlinAttitudeIteration> &
 
 		std::shared_ptr<tlinsAttitudeProcessorState> newState{nullptr};
 
-		if (item->isReqursive()) {
+		if (item.second->isReqursive()) {
 			// Macierz obrotu jest aktualizowana incrementalnie
-			newState = item->iteration(currentState, currentIter, previousIter, firstIter);
+			newState = item.second->iteration(currentState, currentIter, previousIter, firstIter);
 		} else {
 			// Macierz obrotu jest obliczana dla wszystkich pomiarow
-			newState = item->compute(*this);
+			newState = item.second->compute(*this);
 		}
 
 		TLINS_LOG_DEBUG("");
@@ -121,6 +121,12 @@ std::shared_ptr<tlinAttitudeIteration> tlinAttitudeIterations::getLast()
 {
 	return iterations.back();
 }
+
+void tlinAttitudeIterations::registerAttitudeProcessor(std::unique_ptr<tlinsAttitudeProcessor> &ptr)
+{
+	std::unique_lock<std::mutex> lock{mtx};
+	attitudeProcessors[ptr->name()] = std::move(ptr);
+};
 
 std::shared_ptr<tlinAttitudeIteration> tlinAttitudeIterations::getFirst()
 {
@@ -147,7 +153,7 @@ std::shared_ptr<tlinAttitudeIteration> tlinAttitudeIterations::getSecond()
 
 const unsigned int tlinAttitudeIterations::size()
 {
-	iterations.size();
+	return iterations.size();
 }
 
 tlinAttitudeIterations::~tlinAttitudeIterations()
